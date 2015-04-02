@@ -1,34 +1,84 @@
 # problem loading rJava, http://stackoverflow.com/a/9120712
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
-# source: http://stackoverflow.com/a/16805244
 require(XML)
-xmlTranslationToDataFrame <- function(xdata){
-        dumFun <- function(x){
+
+# Base class loading XML file with Translation tags
+loadXml <- function(filename, getAttributes) {
+        doc <- xmlParse(filename, getDTD = F)
+        root <- xmlRoot(doc)
+        # read all Translation tags
+        df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
+        
+}
+
+# Creates a data frame with the columns ID, Key, and Text
+loadTranslation <- function(langFile, mainFile) {
+        print('loading lang file...')
+        df <- loadXml(langFile, getAttributes <- function(translationTag){
                 # get attributes
-                xattrs <- xmlAttrs(x)
-                #doesn't make sense to convert to numeric since below
-                # when converted to a data frame it is a list, don't ask me why...
-                #c(sapply(xmlChildren(x), xmlValue), ID = as.numeric(xattrs[['ID']]), Text = as.character(xattrs[['Text']]))
+                attributes <- xmlAttrs(translationTag)
+                attrNames <- names(attributes)
+
+                if (!'ID' %in% attrNames) stop(c(langFile, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
                 
-                #convert back to escape characters
-                text <- gsub(pattern='&', x=xattrs[['Text']], '&amp;', fixed=T)
+                if (!'Text' %in% attrNames) stop(c(langFile, ': Missing attribute Text in:', toString.XMLNode(translationTag)))
+                text <- attributes[['Text']]
+
+                # attention: text may have escape characters and unfortunately
+                # they are converted (probably by Java) e.g. from '&amp;' to '&'
+                # therefore we have to convert it back to escape characters
+                text <- gsub(pattern='&', x=text, '&amp;', fixed=T)
                 text <- gsub(pattern='<', x=text, '&lt;', fixed=T)
                 text <- gsub(pattern='>', x=text, '&gt;', fixed=T)
                 text <- gsub(pattern="'", x=text, '&apos;', fixed=T)
                 text <- gsub(pattern='"', x=text, '&quot;', fixed=T)
                 
-                c(sapply(xmlChildren(x), xmlValue), ID = xattrs[['ID']], Text = text)
-        }
-        doc <- xmlParse(xdata, getDTD = F)
-        root <- xmlRoot(doc)
+                c(ID = id, Text = text)
+                # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
+        })
         
-        df <- as.data.frame(t(xpathSApply(root, "//*/Translation", dumFun)), stringsAsFactors = FALSE)
-
-        # transform
-        # attributes are somewhoe a list with a single element
+        print('loading main file...')
+        mainDf <- loadMain(mainFile)
+        
+        print('checking existence of IDs from lang file in main file')
+        # checking whether all IDs from lang file does also exist in main file
+        for (id in df$ID) {
+                if (nrow(mainDf[mainDf$ID == id,]) == 0) stop(c('ID ', id, ' does not exist in main file ', mainFile))
+        }
+        
+        print('adding key from main to lang data...')
+        # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
+        # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
         # make ID numeric, Text as character
-        df <- transform(df, ID = as.numeric(ID), Text = as.character(Text))
+        
+        getKey <- function(id) {
+                mainDf[mainDf$ID == id,]$Key
+        }
+        
+        df <- transform(df, ID = as.numeric(ID), Key = as.character(getKey(ID)), Text = as.character(Text))
 
+        # sort by first column ID
+        df[order(df[,1]),]
+}
+
+# Creates a data frame with the columns ID and Key
+loadMain <- function(filename) {
+        df <- loadXml(filename, getAttributes <- function(translationTag){
+                # get attributes
+                id <- xmlGetAttr(translationTag, 'ID') # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
+                if (is.null(id)) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                key <- xmlGetAttr(translationTag, 'Key')
+                if (is.null(key)) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
+                c(ID = id, Key = key)
+                # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
+        })
+        
+        # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
+        # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
+        # make ID numeric, Text as character
+        df <- transform(df, ID = as.numeric(ID), Key = as.character(Key))
+        
         # sort by first column ID
         df[order(df[,1]),]
 }
