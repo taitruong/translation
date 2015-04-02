@@ -11,3 +11,8 @@
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
+
+# ignore excel, xml, and csv files
+*.csv
+*.xl*
+*.xml
