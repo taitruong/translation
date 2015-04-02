@@ -2,17 +2,38 @@
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XML)
 
-# Base class loading XML file with Translation tags
-loadXml <- function(filename, getAttributes) {
-        doc <- xmlParse(filename, getDTD = F)
-        root <- xmlRoot(doc)
-        # read all Translation tags
-        df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
-        
-}
-
 # Creates a data frame with the columns ID, Key, and Text
 loadTranslation <- function(langFile, mainFile) {
+        # Base class loading XML file with Translation tags
+        loadXml <- function(filename, getAttributes) {
+                doc <- xmlParse(filename, getDTD = F)
+                root <- xmlRoot(doc)
+                # read all Translation tags
+                df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
+                
+        }
+        
+        # Creates a data frame with the columns ID and Key
+        loadMain <- function(filename) {
+                df <- loadXml(filename, getAttributes <- function(translationTag){
+                        # get attributes
+                        id <- xmlGetAttr(translationTag, 'ID') # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
+                        if (is.null(id)) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                        key <- xmlGetAttr(translationTag, 'Key')
+                        if (is.null(key)) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
+                        c(ID = id, Key = key)
+                        # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
+                })
+                
+                # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
+                # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
+                # make ID numeric, Text as character
+                df <- transform(df, ID = as.numeric(ID), Key = as.character(Key))
+                
+                # sort by first column ID
+                df[order(df[,1]),]
+        }
+
         print('loading lang file...')
         langDf <- loadXml(langFile, getAttributes <- function(translationTag){
                 # get attributes
@@ -44,7 +65,7 @@ loadTranslation <- function(langFile, mainFile) {
         langDf <- transform(langDf, ID = as.numeric(ID), Text = as.character(Text))
         
         # sort by first column ID
-        langDf[order(df[,1]),]
+        langDf[order(langDf[,1]),]
 
         print('loading main file...')
         mainDf <- loadMain(mainFile)
@@ -64,25 +85,4 @@ loadTranslation <- function(langFile, mainFile) {
         
         print('merging main and lang data frames...')
         merge(mainDf, langDf)
-}
-
-# Creates a data frame with the columns ID and Key
-loadMain <- function(filename) {
-        df <- loadXml(filename, getAttributes <- function(translationTag){
-                # get attributes
-                id <- xmlGetAttr(translationTag, 'ID') # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
-                if (is.null(id)) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
-                key <- xmlGetAttr(translationTag, 'Key')
-                if (is.null(key)) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
-                c(ID = id, Key = key)
-                # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
-        })
-        
-        # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
-        # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
-        # make ID numeric, Text as character
-        df <- transform(df, ID = as.numeric(ID), Key = as.character(Key))
-        
-        # sort by first column ID
-        df[order(df[,1]),]
 }
