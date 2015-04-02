@@ -14,7 +14,7 @@ loadXml <- function(filename, getAttributes) {
 # Creates a data frame with the columns ID, Key, and Text
 loadTranslation <- function(langFile, mainFile) {
         print('loading lang file...')
-        df <- loadXml(langFile, getAttributes <- function(translationTag){
+        langDf <- loadXml(langFile, getAttributes <- function(translationTag){
                 # get attributes
                 attributes <- xmlAttrs(translationTag)
                 attrNames <- names(attributes)
@@ -38,28 +38,32 @@ loadTranslation <- function(langFile, mainFile) {
                 # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
         })
         
+        # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
+        # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
+        # make ID numeric, Text as character
+        langDf <- transform(langDf, ID = as.numeric(ID), Text = as.character(Text))
+        
+        # sort by first column ID
+        langDf[order(df[,1]),]
+
         print('loading main file...')
         mainDf <- loadMain(mainFile)
         
         print('checking existence of IDs from lang file in main file')
+        
         # checking whether all IDs from lang file does also exist in main file
-        for (id in df$ID) {
-                if (nrow(mainDf[mainDf$ID == id,]) == 0) stop(c('ID ', id, ' does not exist in main file ', mainFile))
+        langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
+        if (nrow(langDfNotInMainDf) > 0) {
+                stop(c('The following IDs from the lang file are NOT in the main file: ', toString(langDfNotInMainDf$ID)))
         }
         
-        print('adding key from main to lang data...')
-        # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
-        # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
-        # make ID numeric, Text as character
-        
-        getKey <- function(id) {
-                mainDf[mainDf$ID == id,]$Key
+        # makre sure both data frame has same row size
+        if (nrow(langDf) != nrow(mainDf)) {
+                stop(c('Lang file size (', nrow(langDf), ') is not equal main file size (', nrow(mainDf), ')'))
         }
         
-        df <- transform(df, ID = as.numeric(ID), Key = as.character(getKey(ID)), Text = as.character(Text))
-
-        # sort by first column ID
-        df[order(df[,1]),]
+        print('merging main and lang data frames...')
+        merge(mainDf, langDf)
 }
 
 # Creates a data frame with the columns ID and Key
