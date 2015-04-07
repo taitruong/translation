@@ -6,7 +6,7 @@ require(XML)
 loadTranslation <- function(langFile, mainFile) {
         # Base class loading XML file with Translation tags
         loadXml <- function(filename, getAttributes) {
-                doc <- xmlParse(filename, getDTD = F)
+                doc <- xmlParse(filename, getDTD = T)
                 root <- xmlRoot(doc)
                 # read all Translation tags
                 df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
@@ -30,6 +30,15 @@ loadTranslation <- function(langFile, mainFile) {
                         if (!'OriginalText' %in% attrNames) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
                         originalText <- attributes[['OriginalText']]
 
+                        # attention: text may have escape characters and unfortunately
+                        # they are converted (probably by Java) e.g. from '&amp;' to '&'
+                        # therefore we have to convert it back to escape characters
+                        originalText <- gsub(pattern='&', x=originalText, '&amp;', fixed=T)
+                        originalText <- gsub(pattern='<', x=originalText, '&lt;', fixed=T)
+                        originalText <- gsub(pattern='>', x=originalText, '&gt;', fixed=T)
+                        originalText <- gsub(pattern="'", x=originalText, '&apos;', fixed=T)
+                        originalText <- gsub(pattern='"', x=originalText, '&quot;', fixed=T)
+                        
                         c(ID = id, Key = key, OriginalText = originalText)
                         # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
                 })
