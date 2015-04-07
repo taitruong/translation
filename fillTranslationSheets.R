@@ -2,20 +2,27 @@
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
 source('loadTranslation.R')
-importSheets <- function(filename) {
+fillTranslationSheets <- function(excelFile) {
         translation <- loadTranslation('D:/000/recruitingappTranslation_eng_new.xml', 'D:/000/recruitingappTranslation_Main.xml')
-        workbook <- loadWorkbook(filename)
+        workbook <- loadWorkbook(excelFile)
         sheetNames <- getSheets(workbook)
         sheets <- readWorksheet(workbook, sheetNames)
         
-        greenCell <- createCellStyle(workbook)
-        setFillPattern(greenCell, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(greenCell, color = XLC$COLOR.GREEN)
+        # define cell color for header
+        headerCellstyle <- createCellStyle(workbook)
+        setFillPattern(headerCellstyle, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(headerCellstyle, color = XLC$COLOR.LIGHT_BLUE)
+        
+        # define cell color for changes
+        greenCellstyle <- createCellStyle(workbook)
+        setFillPattern(greenCellstyle, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(greenCellstyle, color = XLC$COLOR.GREEN)
+
         for (sheetName in sheetNames) {
                 currentSheet <- readWorksheet(workbook, sheet = sheetName)
                 sheetRowNumbers <- nrow(currentSheet)
                 if (sheetRowNumbers > 3) {
-                        print(c('Processing sheet ', sheetName))
+                        print(paste('Processing sheet', sheetName))
                         # skip row 1 to 3 since they do not contain keys in column 1
                         changedRows <- seq()
                         for (sheetRowNumber in 4:sheetRowNumbers) {
@@ -27,7 +34,7 @@ importSheets <- function(filename) {
                                         result <- nrow(translationRow)
                                         if (result == 1) {
                                                 #print(c('change row', sheetRowNumber))
-                                                changedRows <- c(changedRows, sheetRowNumber)
+                                                changedRows <- c(changedRows, sheetRowNumber + 1)
                                                 currentSheet[sheetRowNumber, 'ID'] <- translationRow$ID
                                                 currentSheet[sheetRowNumber, 'OriginalText'] <- translationRow$OriginalText
                                                 currentSheet[sheetRowNumber, 'Text'] <- translationRow$Text
@@ -38,13 +45,18 @@ importSheets <- function(filename) {
                         }
                         if (length(changedRows) > 0) {
                                 writeWorksheet(workbook, currentSheet, sheet = sheetName)
+                                
                                 #does not work yet - changing cell styles over two columns 
-                                #setCellStyle(workbook, sheet = sheetName, row = changedRows, col = c(1,2), cellstyle = greenCell)
-                                print(c(length(changedRows), " rows updated."))
+                                for (changedRow in changedRows) {
+                                        setCellStyle(workbook, sheet = sheetName, row = changedRow, col = 1:5, cellstyle = greenCellstyle)
+                                }
+                                
+                                print(paste(length(changedRows), "row(s) updated."))
                         }
                 } else {
-                        print(c('Skip empty sheet', sheetName))
+                        print(paste('Skip empty sheet', sheetName))
                 }
+                setCellStyle(workbook, sheet = sheetName, row = 1, col = 1:5, cellstyle = headerCellstyle)
         }
-        saveWorkbook(workbook, 'test.xlsx')
+        saveWorkbook(workbook, paste('new_', excelFile))
 }
