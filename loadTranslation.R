@@ -17,14 +17,19 @@ loadTranslation <- function(langFile, mainFile) {
         loadMain <- function(filename) {
                 df <- loadXml(filename, getAttributes <- function(translationTag){
                         # get attributes
-                        id <- xmlGetAttr(translationTag, 'ID') # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
-                        if (is.null(id)) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                        attributes <- xmlAttrs(translationTag)
+                        attrNames <- names(attributes)
+
+                        # get attributes
+                        if (!'ID' %in% attrNames) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                        id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
                         
-                        key <- xmlGetAttr(translationTag, 'Key')
-                        if (is.null(key)) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
+                        if (!'Key' %in% attrNames) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
+                        key <- attributes[['Key']]
                         
-                        originalText <- xmlGetAttr(translationTag, 'OriginalText')
-                        if (is.null(originalText)) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
+                        if (!'OriginalText' %in% attrNames) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
+                        originalText <- attributes[['OriginalText']]
+
                         c(ID = id, Key = key, OriginalText = originalText)
                         # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
                 })
