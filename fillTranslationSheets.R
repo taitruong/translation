@@ -36,9 +36,9 @@ fillTranslationSheets <- function(excelFile) {
                 if (sheetRowNumbers > 3) {
                         print(paste('Processing sheet', sheetName))
                         # skip row 1 to 3 since they do not contain keys in column 1
-                        changedRows <- seq()
-                        changedOriginalRows <- seq()
-                        changedTextRows <- seq()
+                        changedRows <- list()
+                        changedOriginalRows <- list()
+                        changedTextRows <- list()
                         for (sheetRowNumber in 4:sheetRowNumbers) {
                                 keyValue <- currentSheet[sheetRowNumber, 'Key']
                                 #print(c('Process row', sheetRowNumber+1))
@@ -66,7 +66,7 @@ fillTranslationSheets <- function(excelFile) {
                                                         currentSheet[sheetRowNumber, 'Text'] <- translationRow$Text
                                                 }
                                                 if (changed) {
-                                                        print(paste('Change row', sheetRowNumber + 1))
+                                                        print(paste('Changed row', sheetRowNumber + 1))
                                                         changedRows <- c(changedRows, sheetRowNumber + 1)
                                                 }
                                         } else {
