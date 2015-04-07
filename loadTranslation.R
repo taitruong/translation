@@ -19,16 +19,20 @@ loadTranslation <- function(langFile, mainFile) {
                         # get attributes
                         id <- xmlGetAttr(translationTag, 'ID') # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
                         if (is.null(id)) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                        
                         key <- xmlGetAttr(translationTag, 'Key')
                         if (is.null(key)) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
-                        c(ID = id, Key = key)
+                        
+                        originalText <- xmlGetAttr(translationTag, 'OriginalText')
+                        if (is.null(originalText)) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
+                        c(ID = id, Key = key, OriginalText = originalText)
                         # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
                 })
                 
                 # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
                 # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
                 # make ID numeric, Text as character
-                df <- transform(df, ID = as.numeric(ID), Key = as.character(Key))
+                df <- transform(df, ID = as.numeric(ID), Key = as.character(Key), OriginalText = as.character(OriginalText))
                 
                 # sort by first column ID
                 df[order(df[,1]),]
@@ -70,7 +74,7 @@ loadTranslation <- function(langFile, mainFile) {
         print('loading main file...')
         mainDf <- loadMain(mainFile)
         
-        print('checking existence of IDs from lang file in main file')
+        print('checking whether IDs in lang file exist in main file')
         
         # checking whether all IDs from lang file does also exist in main file
         langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
