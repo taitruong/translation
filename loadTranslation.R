@@ -6,7 +6,7 @@ require(XML)
 loadTranslation <- function(langFile, mainFile) {
         # Base class loading XML file with Translation tags
         loadXml <- function(filename, getAttributes) {
-                doc <- xmlParse(filename, getDTD = T)
+                doc <- xmlParse(filename)
                 root <- xmlRoot(doc)
                 # read all Translation tags
                 df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
@@ -28,16 +28,26 @@ loadTranslation <- function(langFile, mainFile) {
                         key <- attributes[['Key']]
                         
                         if (!'OriginalText' %in% attrNames) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
-                        originalText <- attributes[['OriginalText']]
+                        # workaround retrieving attribute via 'raw' toString function 
+                        # for some reason retrieving value via attributes[['SomeAttribute']]
+                        # does not return special characters (e.g. ä,ö,ü) correctly - though XML is in UTF-8!
+                        # one nice side effect: escape characters like '&lt;', '&amp;' are not converted to '<', '&', etc.
+                        originalText <- toString.XMLNode(translationTag)
+                        originalText <- sub('OriginalText=\"', '', substring(originalText, regexpr('OriginalText=\"', originalText)))
+                        originalText <- substring(originalText, 1, regexpr('\"', originalText) - 1)
+                        
+                        # unusable attributes' xmlAttrs function - since special characters are not treated correctly
+                        #originalText <- attributes[['OriginalText']]
 
+                        # not needed since we don't use attributes' xmlAttrs function
                         # attention: text may have escape characters and unfortunately
                         # they are converted (probably by Java) e.g. from '&amp;' to '&'
                         # therefore we have to convert it back to escape characters
-                        originalText <- gsub(pattern='&', x=originalText, '&amp;', fixed=T)
-                        originalText <- gsub(pattern='<', x=originalText, '&lt;', fixed=T)
-                        originalText <- gsub(pattern='>', x=originalText, '&gt;', fixed=T)
-                        originalText <- gsub(pattern="'", x=originalText, '&apos;', fixed=T)
-                        originalText <- gsub(pattern='"', x=originalText, '&quot;', fixed=T)
+                        #originalText <- gsub(pattern='&', x=originalText, '&amp;', fixed=T)
+                        #originalText <- gsub(pattern='<', x=originalText, '&lt;', fixed=T)
+                        #originalText <- gsub(pattern='>', x=originalText, '&gt;', fixed=T)
+                        #originalText <- gsub(pattern="'", x=originalText, '&apos;', fixed=T)
+                        #originalText <- gsub(pattern='"', x=originalText, '&quot;', fixed=T)
                         
                         c(ID = id, Key = key, OriginalText = originalText)
                         # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
@@ -62,16 +72,26 @@ loadTranslation <- function(langFile, mainFile) {
                 id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
                 
                 if (!'Text' %in% attrNames) stop(c(langFile, ': Missing attribute Text in:', toString.XMLNode(translationTag)))
-                text <- attributes[['Text']]
+                # workaround retrieving attribute via 'raw' toString function 
+                # for some reason retrieving value via attributes[['SomeAttribute']]
+                # does not return special characters (e.g. ä,ö,ü) correctly - though XML is in UTF-8!
+                # one nice side effect: escape characters like '&lt;', '&amp;' are not converted to '<', '&', etc.
+                text <- toString.XMLNode(translationTag)
+                text <- sub('Text=\"', '', substring(text, regexpr('Text=\"', text)))
+                text <- substring(text, 1, regexpr('\"', text) - 1)
+                
+                # unusable attributes' xmlAttrs function - since special characters are not treated correctly
+                #text <- attributes[['Text']]
 
+                # not needed since we don't use attributes' xmlAttrs function
                 # attention: text may have escape characters and unfortunately
                 # they are converted (probably by Java) e.g. from '&amp;' to '&'
                 # therefore we have to convert it back to escape characters
-                text <- gsub(pattern='&', x=text, '&amp;', fixed=T)
-                text <- gsub(pattern='<', x=text, '&lt;', fixed=T)
-                text <- gsub(pattern='>', x=text, '&gt;', fixed=T)
-                text <- gsub(pattern="'", x=text, '&apos;', fixed=T)
-                text <- gsub(pattern='"', x=text, '&quot;', fixed=T)
+                #text <- gsub(pattern='&', x=text, '&amp;', fixed=T)
+                #text <- gsub(pattern='<', x=text, '&lt;', fixed=T)
+                #text <- gsub(pattern='>', x=text, '&gt;', fixed=T)
+                #text <- gsub(pattern="'", x=text, '&apos;', fixed=T)
+                #text <- gsub(pattern='"', x=text, '&quot;', fixed=T)
                 
                 c(ID = id, Text = text)
                 # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
