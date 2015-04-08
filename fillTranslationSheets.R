@@ -2,92 +2,165 @@
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
 source('loadTranslation.R')
-fillTranslationSheets <- function(excelFile) {
+fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, latestLangFile, latestMainFile) {
         translation <- loadTranslation('D:/000/recruitingappTranslation_eng_new.xml', 'D:/000/recruitingappTranslation_Main.xml')
+        
+        # read excel workbook and its sheets
         workbook <- loadWorkbook(excelFile)
         sheetNames <- getSheets(workbook)
         sheets <- readWorksheet(workbook, sheetNames)
         
-        # define cell color for header
+        # define cell style and color for Excel for highlighting:
+        # - changes in a row: color for complete row
+        # - changes in original text: color for a cell in that row
+        # - changes in text: color for a cell in that row
+        
+        # define cell style and color for header row
         headerCellstyle <- createCellStyle(workbook)
         setFillPattern(headerCellstyle, fill = XLC$FILL.SOLID_FOREGROUND)
         setFillForegroundColor(headerCellstyle, color = XLC$COLOR.LIGHT_BLUE)
         
-        # define cell color for changes
+        # define cell style and color for row changes
         changedRowCellstyle <- createCellStyle(workbook)
         setFillPattern(changedRowCellstyle, fill = XLC$FILL.SOLID_FOREGROUND)
         setFillForegroundColor(changedRowCellstyle, color = XLC$COLOR.LIGHT_YELLOW)
         
-        # define cell color for original text and text changes
+        # define cell style and color for original text and text changes in a single cell
         changedTextRowCellstyle <- createCellStyle(workbook)
         setFillPattern(changedTextRowCellstyle, fill = XLC$FILL.SOLID_FOREGROUND)
         setFillForegroundColor(changedTextRowCellstyle, color = XLC$COLOR.LIGHT_ORANGE)
         
+        # function to populate a sheet's cell
+        # returns TRUE if it has changed else FALSE
+        setCell <- function(sheet, # the sheet to be changed
+                            rowNumber, # the sheet's row of the cell to be changed
+                            colName, # the column name of the cell to be changed
+                            translationRow # the translation data to update the cell
+                            ) {
+                # get value from sheet's cell
+                cellValue <- sheet[rowNumber, colName]
+                # cell has changed based on these rules:
+                # - empty/NA/NULL: no translation yet
+                # - value differs from data frame
+                if (is.null(cellValue) || is.na(cellValue) || cellValue != translationRow[colName]) {
+                        #print(paste('change ', colName, ' \'', cellValue, '\' to \'', translationRow[colName], '\'', sep = ''))
+                        
+                        # set cell value
+                        sheet[rowNumber, colName] <- translationRow[colName]
+                        TRUE
+                } else {
+                        FALSE
+                }
+        }
+        
+        # process for each sheet:
+        # read key in each row
+        # based on the key read the translation data frames and populate cells
         for (sheetName in sheetNames) {
                 currentSheet <- readWorksheet(workbook, sheet = sheetName)
                 
-                # define col indices for cell styles below
+                # get col positions required to set cell styles below
                 columnNames <- colnames(currentSheet)
+                # length - last position of last column (cell style for whole row)
                 colLength <- length(columnNames)
+                # position of original text (cell style when it has changed)
                 colIndexOriginalText <- which(columnNames == 'OriginalText')
+                # position of text (cell style when it has changed)
                 colIndexText <- which(columnNames == 'Text')
                 
                 sheetRowNumbers <- nrow(currentSheet)
+                # is there any data?
+                # skip first 3 rows since they contain no keys / only header infos
                 if (sheetRowNumbers > 3) {
                         print(paste('Processing sheet', sheetName))
-                        # skip row 1 to 3 since they do not contain keys in column 1
+                        # initialize 3 lists holding changed rows:
+                        # - row list for any cell changes (union of the other two change lists)
                         changedRows <- list()
+                        # - row list for changes in 'Original' cell
                         changedOriginalRows <- list()
+                        # - row list for changes in 'Text' cell
                         changedTextRows <- list()
+                        # iterate through each row and start filling the sheet
+                        # using our translation data frames
                         for (sheetRowNumber in 4:sheetRowNumbers) {
                                 keyValue <- currentSheet[sheetRowNumber, 'Key']
                                 #print(c('Process row', sheetRowNumber+1))
-                                if (!is.null(keyValue) && !is.na(keyValue)) {
-                                        #row data frame
-                                        translationRow <- translation[translation$Key == keyValue,]
-                                        result <- nrow(translationRow)
-                                        if (result == 1) {
-                                                currentSheet[sheetRowNumber, 'ID'] <- translationRow$ID
-                                                changed <- FALSE
+                                # skip if Key cell is NULL or NA
+                                if (is.null(keyValue) || is.na(keyValue)) {
+                                        next
+                                }
+                                # get translation for this key
+                                translationRow <- translation[translation$Key == keyValue,]
+                                # there must be exactly one translation
+                                result <- nrow(translationRow)
+                                if (result == 1) {
+                                        # set ID in sheet
+                                        currentSheet[sheetRowNumber, 'ID'] <- translationRow$ID
 
-                                                originalText <- currentSheet[sheetRowNumber, 'OriginalText']
-                                                if (is.na(originalText) || originalText != translationRow$OriginalText) {
-                                                        changed <- TRUE
-                                                        changedOriginalRows <- c(changedOriginalRows, sheetRowNumber + 1)
-                                                        print(paste('change original text ', originalText, 'to', translationRow$OriginalText))
-                                                        currentSheet[sheetRowNumber, 'OriginalText'] <- translationRow$OriginalText
-                                                }
-                                                
-                                                text <- currentSheet[sheetRowNumber, 'Text']
-                                                if (is.na(text) || text != translationRow$Text) {
-                                                        changed <- TRUE
-                                                        changedTextRows <- c(changedTextRows, sheetRowNumber + 1)
-                                                        print(paste('change text', text, 'to', translationRow$Text))
-                                                        currentSheet[sheetRowNumber, 'Text'] <- translationRow$Text
-                                                }
-                                                if (changed) {
-                                                        print(paste('Changed row', sheetRowNumber + 1))
-                                                        changedRows <- c(changedRows, sheetRowNumber + 1)
-                                                }
-                                        } else {
-                                                stop(c(result, ' results found. Could not find key ', keyValue,' in translation file. Error in sheet ', sheetName, ', row ', sheetRowNumber+1))
+                                        # boolean marker to indicate some has changed in this sheet's row
+                                        changed <- FALSE
+                                        
+                                        # fill OriginalText cell
+                                        if (setCell(currentSheet, sheetRowNumber, 'OriginalText', translationRow)) {
+                                                # store row number in list
+                                                changedOriginalRows <- c(changedOriginalRows, sheetRowNumber + 1)
+                                                changed <- TRUE
                                         }
+                                        
+                                        # fill Text cell
+                                        if (setCell(currentSheet, sheetRowNumber, 'Text', translationRow)) {
+                                                # store row number in list
+                                                changedTextRows <- c(changedTextRows, sheetRowNumber + 1)
+                                                changed <- TRUE
+                                        }
+
+                                        if (changed) {
+                                                #print(paste('Changed row', sheetRowNumber + 1))
+                                                changedRows <- c(changedRows, sheetRowNumber + 1)
+                                        }
+                                } else {
+                                        stop(c(result,
+                                               ' results found. Could not find key ', 
+                                               keyValue,
+                                               ' in translation file. Error in sheet ',
+                                               sheetName,
+                                               ', row ',
+                                               sheetRowNumber+1,
+                                               '. Translation:\n',
+                                               translationRow))
                                 }
                         }
+                        
+                        # something has changed?
+                        # highlight the rows with our defined cell styles above
                         if (length(changedRows) > 0) {
+                                # write the sheet back into the workbook
                                 writeWorksheet(workbook, currentSheet, sheet = sheetName)
                                 
-                                #does not work yet - changing cell styles over two columns 
                                 for (changedRow in changedRows) {
-                                        # color code complete row as changed
-                                        setCellStyle(workbook, sheet = sheetName, row = changedRow, col = 1:colLength, cellstyle = changedRowCellstyle)
-                                        # color code cell for changed original text
+                                        # cell style for complete row has changed
+                                        setCellStyle(workbook,
+                                                     sheet = sheetName,
+                                                     row = changedRow,
+                                                     col = 1:colLength,
+                                                     cellstyle = changedRowCellstyle)
+                                        
+                                        # cell style for changed original text
                                         if (changedRow %in% changedOriginalRows) {
-                                                setCellStyle(workbook, sheet = sheetName, row = changedRow, col = colIndexOriginalText, cellstyle = changedTextRowCellstyle)
+                                                setCellStyle(workbook, 
+                                                             sheet = sheetName, 
+                                                             row = changedRow, 
+                                                             col = colIndexOriginalText, 
+                                                             cellstyle = changedTextRowCellstyle)
                                         }
-                                        # color code cell for changed text
+                                        
+                                        # cell style for changed text
                                         if (changedRow %in% changedTextRows) {
-                                                setCellStyle(workbook, sheet = sheetName, row = changedRow, col = colIndexText, cellstyle = changedTextRowCellstyle)
+                                                setCellStyle(workbook, 
+                                                             sheet = sheetName, 
+                                                             row = changedRow, 
+                                                             col = colIndexText, 
+                                                             cellstyle = changedTextRowCellstyle)
                                         }
                                 }
                                 

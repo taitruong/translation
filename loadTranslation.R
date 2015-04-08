@@ -62,7 +62,7 @@ loadTranslation <- function(langFile, mainFile) {
                 df[order(df[,1]),]
         }
 
-        print('loading lang file...')
+        print(paste('Loading lang file', langFile))
         langDf <- loadXml(langFile, getAttributes <- function(translationTag){
                 # get attributes
                 attributes <- xmlAttrs(translationTag)
@@ -105,10 +105,10 @@ loadTranslation <- function(langFile, mainFile) {
         # sort by first column ID
         langDf[order(langDf[,1]),]
 
-        print('loading main file...')
+        print(paste('Loading main file', mainFile))
         mainDf <- loadMain(mainFile)
         
-        print('checking whether IDs in lang file exist in main file')
+        print('Checking whether IDs in lang file exist in main file')
         
         # checking whether all IDs from lang file does also exist in main file
         langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
@@ -121,6 +121,6 @@ loadTranslation <- function(langFile, mainFile) {
                 stop(c('Lang file size (', nrow(langDf), ') is not equal main file size (', nrow(mainDf), ')'))
         }
         
-        print('merging main and lang data frames...')
+        print('Merging main and lang data frames...')
         merge(mainDf, langDf)
 }
