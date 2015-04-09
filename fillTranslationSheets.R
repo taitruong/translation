@@ -28,7 +28,8 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         SHEET_NAME_SUMMARY = 'Summary'
         COLUMN_NAME_SHEET = 'Sheet'
         COLUMN_NAME_STATUS = 'Status'
-        summaryRowIndex = 1
+        COLUMN_NAME_DESCRIPTION = 'Description'
+        summaryRowIndex <- 1
         summary <- data.frame(
                 Sheet = character(),
                 Status = character(),
@@ -140,10 +141,16 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 changedOriginalRows <- list()
                 # - row list for changes in 'Text' cell
                 changedTextRows <- list()
-                
-                rowNumbers <- nrow(currentSheet)
+
+                # summary of processing
+                overallStatus <- 'OK'
+                summaryFirstRowIndex <- summaryRowIndex
                 summary[summaryRowIndex, COLUMN_NAME_SHEET] <- sheetName
+                # all other infos goes to next line
+                summaryRowIndex <- summaryRowIndex + 1
+
                 # is there any data?
+                rowNumbers <- nrow(currentSheet)
                 if (rowNumbers >= ROW_INDEX_FIRST_KEY) {
                         print(paste('Processing sheet', sheetName))
                         
@@ -201,15 +208,11 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                                                 }
                                         }
                                 } else {
-                                        stop(c(result,
-                                               ' results found. Could not find key ', 
-                                               keyValue,
-                                               ' in translation file. Error in sheet ',
-                                               sheetName,
-                                               ', row ',
-                                               rowNumber+1,
-                                               '. Translation:\n',
-                                               translationRow))
+                                        overallStatus <- 'Error'
+                                        summary[summaryRowIndex, COLUMN_NAME_STATUS] <- paste('Unknown key\'', keyValue, '\'')
+                                        summary[summaryRowIndex, COLUMN_NAME_DESCRIPTION] <- 
+                                                paste('Sheet', sheetName, ', row', rowNumber+1, '.', nrow(translationRow), 'translations found.')
+                                        summaryRowIndex <- summaryRowIndex + 1
                                 }
                         }
                         
@@ -218,18 +221,17 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                         writeWorksheet(workbook, currentSheet, sheet = sheetName)
 
                         updateSheetStyles()
-                        
-                        print(paste(length(changedRows), "row(s) updated."))
-                } else {
-                        print(paste('Skip empty sheet', sheetName))
                 }
+                text <- ''
                 for (columnName in columnList) {
                         if (columnName == COLUMN_NAME_TEXT) {
-                                summary[summaryRowIndex, columnName] <- paste(length(changedTextRows), ' changes.')
+                                text <- paste(text, length(changedTextRows), ' changes in', columnName, '.')
                         } else if (columnName == COLUMN_NAME_ORIGINAL_TEXT) {
-                                summary[summaryRowIndex, columnName] <- paste(length(changedOriginalRows), ' changes.')
+                                text <- paste(text, length(changedOriginalRows), ' changes in', columnName, '.')
                         }
                 }
+                summary[summaryRowIndex, COLUMN_NAME_DESCRIPTION] <- text
+                summary[summaryRowIndex, COLUMN_NAME_STATUS] <- paste(length(changedOriginalRows) + length(changedTextRows), ' total changes.')
                 
                 # set header cell style for each sheet
                 setCellStyle(workbook, sheet = sheetName, row = 1, col = 1:colLength, cellstyle = cellStyleHeader)
