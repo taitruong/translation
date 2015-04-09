@@ -10,6 +10,14 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         sheetNames <- getSheets(workbook)
         sheets <- readWorksheet(workbook, sheetNames)
         
+        #################### Functions, Constants ####################
+        
+        # skip first 3 rows since they contain no keys / only header infos
+        ROW_INDEX_FIRST_KEY <- 4
+
+        COLUMN_NAME_ORIGINAL_TEXT <- 'OriginalText'
+        COLUMN_NAME_TEXT <- 'Text'
+        
         # define cell style and color for Excel for highlighting:
         # - changes in a row: color for complete row
         # - changes in original text: color for a cell in that row
@@ -39,7 +47,7 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         updateSheetStyles <- function() {
                 # something has changed?
                 # highlight the rows with our defined cell styles above
-                for (rowNumber in 4:rowNumbers) {
+                for (rowNumber in ROW_INDEX_FIRST_KEY:rowNumbers) {
                         if (rowNumber %in% changedRows) {
                                 # cell style for complete row has changed
                                 setCellStyle(workbook,
@@ -88,6 +96,7 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                         FALSE
                 }
         }
+        #################### END ####################
         
         # process for each sheet:
         # read key in each row
@@ -100,14 +109,13 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 # length - last position of last column (cell style for whole row)
                 colLength <- length(columnNames)
                 # position of original text (cell style when it has changed)
-                colIndexOriginalText <- which(columnNames == 'OriginalText')
+                colIndexOriginalText <- which(columnNames == COLUMN_NAME_ORIGINAL_TEXT)
                 # position of text (cell style when it has changed)
                 colIndexText <- which(columnNames == 'Text')
                 
                 rowNumbers <- nrow(currentSheet)
                 # is there any data?
-                # skip first 3 rows since they contain no keys / only header infos
-                if (rowNumbers > 3) {
+                if (rowNumbers >= ROW_INDEX_FIRST_KEY) {
                         print(paste('Processing sheet', sheetName))
                         
                         # initialize 3 lists holding changed rows:
@@ -120,7 +128,7 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                         
                         # iterate through each row and start filling the sheet
                         # using our translation data frames
-                        for (rowNumber in 4:rowNumbers) {
+                        for (rowNumber in ROW_INDEX_FIRST_KEY:rowNumbers) {
                                 #print(c('Process row', rowNumber+1))
 
                                 # read key from sheet
@@ -142,24 +150,38 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                                         # boolean marker to indicate some has changed in this sheet's row
                                         changed <- FALSE
                                         
-                                        # fill OriginalText cell
-                                        if (changedValue(currentSheet[rowNumber, 'OriginalText'], translationRow['OriginalText'])) {
-                                                #print(paste('change OriginalText', ' \'', cellValue, '\' to \'', translation, '\'', sep = ''))
+                                        # fill COLUMN_NAME_ORIGINAL_TEXT cell
+                                        if (changedValue(currentSheet[rowNumber, COLUMN_NAME_ORIGINAL_TEXT], translationRow[COLUMN_NAME_ORIGINAL_TEXT])) {
+                                                #print(paste('change ', 
+                                                            COLUMN_NAME_ORIGINAL_TEXT, 
+                                                            ' \'', 
+                                                            currentSheet[rowNumber, COLUMN_NAME_ORIGINAL_TEXT], 
+                                                            '\' to \'', 
+                                                            translationRow[COLUMN_NAME_TEXT], 
+                                                            '\'', 
+                                                            sep = ''))
 
                                                 # set cell value
-                                                currentSheet[rowNumber, 'OriginalText'] <- translationRow['OriginalText']
+                                                currentSheet[rowNumber, COLUMN_NAME_ORIGINAL_TEXT] <- translationRow[COLUMN_NAME_ORIGINAL_TEXT]
                                                 
                                                 # store row number in list
                                                 changedOriginalRows <- c(changedOriginalRows, rowNumber + 1)
                                                 changed <- TRUE
                                         }
                                         
-                                        # fill Text cell
-                                        if (changedValue(currentSheet[rowNumber, 'Text'], translationRow['Text'])) {
-                                                #print(paste('change OriginalText', ' \'', cellValue, '\' to \'', translation, '\'', sep = ''))
+                                        # fill COLUMN_NAME_TEXT cell
+                                        if (changedValue(currentSheet[rowNumber, COLUMN_NAME_TEXT], translationRow[COLUMN_NAME_TEXT])) {
+                                                #print(paste('change ', 
+                                                            COLUMN_NAME_TEXT, 
+                                                            ' \'', 
+                                                            currentSheet[rowNumber, COLUMN_NAME_TEXT], 
+                                                            '\' to \'', 
+                                                            translationRow[COLUMN_NAME_TEXT], 
+                                                            '\'', 
+                                                            sep = ''))
 
                                                 # set cell value
-                                                currentSheet[rowNumber, 'Text'] <- translationRow['Text']
+                                                currentSheet[rowNumber, COLUMN_NAME_TEXT] <- translationRow[COLUMN_NAME_TEXT]
                                                 
                                                 # store row number in list
                                                 changedTextRows <- c(changedTextRows, rowNumber + 1)
