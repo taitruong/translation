@@ -209,9 +209,19 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                                         }
                                 } else {
                                         overallStatus <- 'Error'
-                                        summary[summaryRowIndex, COLUMN_NAME_STATUS] <- paste('Unknown key\'', keyValue, '\'')
+                                        summary[summaryRowIndex, COLUMN_NAME_STATUS] <- 
+                                                paste('Unknown key \'', 
+                                                      keyValue, '\'', 
+                                                      sep = '')
                                         summary[summaryRowIndex, COLUMN_NAME_DESCRIPTION] <- 
-                                                paste('Sheet', sheetName, ', row', rowNumber+1, '.', nrow(translationRow), 'translations found.')
+                                                paste('Sheet \'', 
+                                                      sheetName, 
+                                                      '\', row ', 
+                                                      rowNumber+1, 
+                                                      '. ', 
+                                                      nrow(translationRow), 
+                                                      ' translations found.', 
+                                                      sep = '')
                                         summaryRowIndex <- summaryRowIndex + 1
                                 }
                         }
@@ -225,9 +235,9 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 text <- ''
                 for (columnName in columnList) {
                         if (columnName == COLUMN_NAME_TEXT) {
-                                text <- paste(text, length(changedTextRows), ' changes in', columnName, '.')
+                                text <- paste(text, ' ', length(changedTextRows), ' changes in ', columnName, '.', sep = '')
                         } else if (columnName == COLUMN_NAME_ORIGINAL_TEXT) {
-                                text <- paste(text, length(changedOriginalRows), ' changes in', columnName, '.')
+                                text <- paste(text, ' ', length(changedOriginalRows), ' changes in ', columnName, '.', sep = '')
                         }
                 }
                 summary[summaryRowIndex, COLUMN_NAME_DESCRIPTION] <- text
