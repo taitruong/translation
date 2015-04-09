@@ -169,7 +169,9 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 } else {
                         print(paste('Skip empty sheet', sheetName))
                 }
+                # set header cell style for each sheet
                 setCellStyle(workbook, sheet = sheetName, row = 1, col = 1:colLength, cellstyle = headerCellstyle)
         }
+        # save result
         saveWorkbook(workbook, paste('new_', excelFile))
 }
