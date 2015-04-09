@@ -36,6 +36,46 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         cellStyleWrapText <- createCellStyle(workbook)
         setWrapText(cellStyleWrapText, wrap = T)
         
+        updateSheetStyles <- function() {
+                # something has changed?
+                # highlight the rows with our defined cell styles above
+                for (rowNumber in 4:rowNumbers) {
+                        if (rowNumber %in% changedRows) {
+                                # cell style for complete row has changed
+                                setCellStyle(workbook,
+                                             sheet = sheetName,
+                                             row = rowNumber,
+                                             col = 1:colLength,
+                                             cellstyle = cellStyleRowChanged)
+                                
+                                # cell style for changed original text
+                                if (rowNumber %in% changedOriginalRows) {
+                                        setCellStyle(workbook, 
+                                                     sheet = sheetName, 
+                                                     row = rowNumber, 
+                                                     col = colIndexOriginalText, 
+                                                     cellstyle = cellStyleTextChanged)
+                                }
+                                
+                                # cell style for changed text
+                                if (rowNumber %in% changedTextRows) {
+                                        setCellStyle(workbook, 
+                                                     sheet = sheetName, 
+                                                     row = rowNumber, 
+                                                     col = colIndexText, 
+                                                     cellstyle = cellStyleTextChanged)
+                                }
+                        } else {
+                                # cell style for wrapping text on complete sheet 
+                                setCellStyle(workbook,
+                                             sheet = sheetName,
+                                             row = rowNumber,
+                                             col = 1:colLength,
+                                             cellstyle = cellStyleWrapText)
+                        }
+                }
+        }
+        
         # function to populate a sheet's cell
         # returns TRUE if it has changed else FALSE
         changedValue <- function(cellValue, translation) {
@@ -147,44 +187,8 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                         # before doing further changes e.g. cell styles
                         writeWorksheet(workbook, currentSheet, sheet = sheetName)
 
+                        updateSheetStyles()
                         
-                        # something has changed?
-                        # highlight the rows with our defined cell styles above
-                        for (rowNumber in 4:rowNumbers) {
-                                if (rowNumber %in% changedRows) {
-                                        # cell style for complete row has changed
-                                        setCellStyle(workbook,
-                                                     sheet = sheetName,
-                                                     row = rowNumber,
-                                                     col = 1:colLength,
-                                                     cellstyle = cellStyleRowChanged)
-                                        
-                                        # cell style for changed original text
-                                        if (rowNumber %in% changedOriginalRows) {
-                                                setCellStyle(workbook, 
-                                                             sheet = sheetName, 
-                                                             row = rowNumber, 
-                                                             col = colIndexOriginalText, 
-                                                             cellstyle = cellStyleTextChanged)
-                                        }
-                                        
-                                        # cell style for changed text
-                                        if (rowNumber %in% changedTextRows) {
-                                                setCellStyle(workbook, 
-                                                             sheet = sheetName, 
-                                                             row = rowNumber, 
-                                                             col = colIndexText, 
-                                                             cellstyle = cellStyleTextChanged)
-                                        }
-                                } else {
-                                        # cell style for wrapping text on complete sheet 
-                                        setCellStyle(workbook,
-                                                     sheet = sheetName,
-                                                     row = rowNumber,
-                                                     col = 1:colLength,
-                                                     cellstyle = cellStyleWrapText)
-                                }
-                        }
                         print(paste(length(changedRows), "row(s) updated."))
                 } else {
                         print(paste('Skip empty sheet', sheetName))
