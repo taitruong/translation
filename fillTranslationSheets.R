@@ -3,7 +3,10 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
 source('loadTranslation.R')
 fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, latestLangFile, latestMainFile) {
-        translation <- loadTranslation('D:/000/recruitingappTranslation_eng_new.xml', 'D:/000/recruitingappTranslation_Main.xml')
+        print('Reading current translation files')
+        currentTranslation <- loadTranslation(currentLangFile, currentMainFile)
+        print('Reading latest translation files')
+        #latestTranslation <- loadTranslation(latestLangFile, latestMainFile)
         
         # read excel workbook and its sheets
         workbook <- loadWorkbook(excelFile)
@@ -15,8 +18,25 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         # skip first 3 rows since they contain no keys / only header infos
         ROW_INDEX_FIRST_KEY <- 4
 
+        # the columns to be populated and checked
         COLUMN_NAME_ORIGINAL_TEXT <- 'OriginalText'
         COLUMN_NAME_TEXT <- 'Text'
+        columnList <- list(COLUMN_NAME_ORIGINAL_TEXT, COLUMN_NAME_TEXT)
+        
+        
+        # summary sheet
+        SHEET_NAME_SUMMARY = 'Summary'
+        COLUMN_NAME_SHEET = 'Sheet'
+        COLUMN_NAME_STATUS = 'Status'
+        summaryRowIndex = 1
+        summary <- data.frame(
+                Sheet = character(),
+                Status = character(),
+                stringsAsFactors = FALSE
+                )
+        if (!SHEET_NAME_SUMMARY %in% sheetNames) {
+                createSheet(workbook, name = SHEET_NAME_SUMMARY)
+        }
         
         # define cell style and color for Excel for highlighting:
         # - changes in a row: color for complete row
@@ -86,11 +106,11 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         
         # function to populate a sheet's cell
         # returns TRUE if it has changed else FALSE
-        changedValue <- function(cellValue, translation) {
+        changedValue <- function(cellValue, translationText) {
                 # cell has changed based on these rules:
                 # - empty/NA/NULL: no translation yet
                 # - value differs from data frame
-                if (is.null(cellValue) || is.na(cellValue) || cellValue != translation) {
+                if (is.null(cellValue) || is.na(cellValue) || cellValue != translationText) {
                         TRUE
                 } else {
                         FALSE
@@ -113,18 +133,19 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 # position of text (cell style when it has changed)
                 colIndexText <- which(columnNames == 'Text')
                 
+                # initialize 3 lists holding changed rows:
+                # - row list for any cell changes (union of the other two change lists)
+                changedRows <- list()
+                # - row list for changes in 'Original' cell
+                changedOriginalRows <- list()
+                # - row list for changes in 'Text' cell
+                changedTextRows <- list()
+                
                 rowNumbers <- nrow(currentSheet)
+                summary[summaryRowIndex, COLUMN_NAME_SHEET] <- sheetName
                 # is there any data?
                 if (rowNumbers >= ROW_INDEX_FIRST_KEY) {
                         print(paste('Processing sheet', sheetName))
-                        
-                        # initialize 3 lists holding changed rows:
-                        # - row list for any cell changes (union of the other two change lists)
-                        changedRows <- list()
-                        # - row list for changes in 'Original' cell
-                        changedOriginalRows <- list()
-                        # - row list for changes in 'Text' cell
-                        changedTextRows <- list()
                         
                         # iterate through each row and start filling the sheet
                         # using our translation data frames
@@ -140,7 +161,7 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                                 }
                                 
                                 # get translation for this key
-                                translationRow <- translation[translation$Key == keyValue,]
+                                translationRow <- currentTranslation[currentTranslation$Key == keyValue,]
                                 # there must be exactly one translation
                                 result <- nrow(translationRow)
                                 if (result == 1) {
@@ -148,49 +169,36 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                                         currentSheet[rowNumber, 'ID'] <- translationRow$ID
 
                                         # boolean marker to indicate some has changed in this sheet's row
-                                        changed <- FALSE
+                                        changedColumns <- list()
                                         
-                                        # fill COLUMN_NAME_ORIGINAL_TEXT cell
-                                        if (changedValue(currentSheet[rowNumber, COLUMN_NAME_ORIGINAL_TEXT], translationRow[COLUMN_NAME_ORIGINAL_TEXT])) {
-                                                #print(paste('change ', 
-                                                            COLUMN_NAME_ORIGINAL_TEXT, 
-                                                            ' \'', 
-                                                            currentSheet[rowNumber, COLUMN_NAME_ORIGINAL_TEXT], 
-                                                            '\' to \'', 
-                                                            translationRow[COLUMN_NAME_TEXT], 
-                                                            '\'', 
-                                                            sep = ''))
-
-                                                # set cell value
-                                                currentSheet[rowNumber, COLUMN_NAME_ORIGINAL_TEXT] <- translationRow[COLUMN_NAME_ORIGINAL_TEXT]
-                                                
-                                                # store row number in list
-                                                changedOriginalRows <- c(changedOriginalRows, rowNumber + 1)
-                                                changed <- TRUE
+                                        # fill columns
+                                        for (columnName in columnList) {
+                                                if (changedValue(currentSheet[rowNumber, columnName], translationRow[columnName])) {
+                                                        print(paste('change ', 
+                                                                    columnName, 
+                                                                    ' \'', 
+                                                                    currentSheet[rowNumber, columnName], 
+                                                                    '\' to \'', 
+                                                                    translationRow[columnName], 
+                                                                    '\'', 
+                                                                    sep = ''))
+                                                        
+                                                        # set cell value
+                                                        currentSheet[rowNumber, columnName] <- translationRow[columnName]
+                                                        
+                                                        # store row number in list
+                                                        changedColumns <- c(changedColumns, columnName)
+                                                }
                                         }
-                                        
-                                        # fill COLUMN_NAME_TEXT cell
-                                        if (changedValue(currentSheet[rowNumber, COLUMN_NAME_TEXT], translationRow[COLUMN_NAME_TEXT])) {
-                                                #print(paste('change ', 
-                                                            COLUMN_NAME_TEXT, 
-                                                            ' \'', 
-                                                            currentSheet[rowNumber, COLUMN_NAME_TEXT], 
-                                                            '\' to \'', 
-                                                            translationRow[COLUMN_NAME_TEXT], 
-                                                            '\'', 
-                                                            sep = ''))
-
-                                                # set cell value
-                                                currentSheet[rowNumber, COLUMN_NAME_TEXT] <- translationRow[COLUMN_NAME_TEXT]
-                                                
-                                                # store row number in list
-                                                changedTextRows <- c(changedTextRows, rowNumber + 1)
-                                                changed <- TRUE
-                                        }
-
-                                        if (changed) {
+                                        if (length(changedColumns) > 0) {
                                                 #print(paste('Changed row', rowNumber + 1))
                                                 changedRows <- c(changedRows, rowNumber + 1)
+                                                if (COLUMN_NAME_TEXT %in% changedColumns) {
+                                                        changedTextRows <- c(changedTextRows, rowNumber + 1)
+                                                }
+                                                if (COLUMN_NAME_ORIGINAL_TEXT %in% changedColumns) {
+                                                        changedOriginalRows <- c(changedOriginalRows, rowNumber + 1)
+                                                }
                                         }
                                 } else {
                                         stop(c(result,
@@ -215,10 +223,19 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 } else {
                         print(paste('Skip empty sheet', sheetName))
                 }
+                for (columnName in columnList) {
+                        if (columnName == COLUMN_NAME_TEXT) {
+                                summary[summaryRowIndex, columnName] <- paste(length(changedTextRows), ' changes.')
+                        } else if (columnName == COLUMN_NAME_ORIGINAL_TEXT) {
+                                summary[summaryRowIndex, columnName] <- paste(length(changedOriginalRows), ' changes.')
+                        }
+                }
+                
                 # set header cell style for each sheet
                 setCellStyle(workbook, sheet = sheetName, row = 1, col = 1:colLength, cellstyle = cellStyleHeader)
-                
+                summaryRowIndex <- summaryRowIndex + 1
         }
+        writeWorksheet(workbook, summary, sheet = SHEET_NAME_SUMMARY)
         # save result
         saveWorkbook(workbook, paste('new_', excelFile))
 }
