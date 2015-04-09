@@ -38,21 +38,11 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         
         # function to populate a sheet's cell
         # returns TRUE if it has changed else FALSE
-        setCell <- function(sheet, # the sheet to be changed
-                            rowNumber, # the sheet's row of the cell to be changed
-                            colName, # the column name of the cell to be changed
-                            translationRow # the translation data to update the cell
-                            ) {
-                # get value from sheet's cell
-                cellValue <- sheet[rowNumber, colName]
+        changedValue <- function(cellValue, translation) {
                 # cell has changed based on these rules:
                 # - empty/NA/NULL: no translation yet
                 # - value differs from data frame
-                if (is.null(cellValue) || is.na(cellValue) || cellValue != translationRow[colName]) {
-                        #print(paste('change ', colName, ' \'', cellValue, '\' to \'', translationRow[colName], '\'', sep = ''))
-                        
-                        # set cell value
-                        sheet[rowNumber, colName] <- translationRow[colName]
+                if (is.null(cellValue) || is.na(cellValue) || cellValue != translation) {
                         TRUE
                 } else {
                         FALSE
@@ -113,14 +103,24 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                                         changed <- FALSE
                                         
                                         # fill OriginalText cell
-                                        if (setCell(currentSheet, rowNumber, 'OriginalText', translationRow)) {
+                                        if (changedValue(currentSheet[rowNumber, 'OriginalText'], translationRow['OriginalText'])) {
+                                                #print(paste('change OriginalText', ' \'', cellValue, '\' to \'', translation, '\'', sep = ''))
+
+                                                # set cell value
+                                                currentSheet[rowNumber, 'OriginalText'] <- translationRow['OriginalText']
+                                                
                                                 # store row number in list
                                                 changedOriginalRows <- c(changedOriginalRows, rowNumber + 1)
                                                 changed <- TRUE
                                         }
                                         
                                         # fill Text cell
-                                        if (setCell(currentSheet, rowNumber, 'Text', translationRow)) {
+                                        if (changedValue(currentSheet[rowNumber, 'Text'], translationRow['Text'])) {
+                                                #print(paste('change OriginalText', ' \'', cellValue, '\' to \'', translation, '\'', sep = ''))
+
+                                                # set cell value
+                                                currentSheet[rowNumber, 'Text'] <- translationRow['Text']
+                                                
                                                 # store row number in list
                                                 changedTextRows <- c(changedTextRows, rowNumber + 1)
                                                 changed <- TRUE
