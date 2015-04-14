@@ -1,17 +1,329 @@
 # problem loading rJava, http://stackoverflow.com/a/9120712
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
+# needed for cpos functions
+require(cwhmisc)
 source('loadTranslation.R')
+
+
 fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, latestLangFile, latestMainFile) {
-        print('Reading current translation files')
-        currentTranslation <- loadTranslation(currentLangFile, currentMainFile)
-        print('Reading latest translation files')
-        #latestTranslation <- loadTranslation(latestLangFile, latestMainFile)
-        
         # read excel workbook and its sheets
+        print(paste('Reading workbook', excelFile))
         workbook <- loadWorkbook(excelFile)
         sheetNames <- getSheets(workbook)
         sheets <- readWorksheet(workbook, sheetNames)
+        # define cell style and color for Excel for highlighting:
+        # - changes in a row: color for complete row
+        # - changes in original text: color for a cell in that row
+        # - changes in text: color for a cell in that row
+
+        ## cell styles for translation sheets
+        # define cell style and color for header row
+        CELL_STYLE_HEADER <- createCellStyle(workbook)
+        setFillPattern(CELL_STYLE_HEADER, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(CELL_STYLE_HEADER, color = XLC$COLOR.LIGHT_BLUE)
+        # define cell style and color for row changes
+        CELL_STYLE_ROW_CHANGED <- createCellStyle(workbook)
+        setWrapText(CELL_STYLE_ROW_CHANGED, wrap = T)
+        setFillPattern(CELL_STYLE_ROW_CHANGED, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(CELL_STYLE_ROW_CHANGED, color = XLC$COLOR.LIGHT_YELLOW)
+        # define cell style and color for original text and text changes in a single cell
+        CELL_STYLE_TEXT_CHANGED <- createCellStyle(workbook)
+        setWrapText(CELL_STYLE_TEXT_CHANGED, wrap = T)
+        setFillPattern(CELL_STYLE_TEXT_CHANGED, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(CELL_STYLE_TEXT_CHANGED, color = XLC$COLOR.LIGHT_ORANGE)
+        # define cell style for wrapping text
+        CELL_STYLE_WRAP_TEXT <- createCellStyle(workbook)
+        setWrapText(CELL_STYLE_WRAP_TEXT, wrap = T)
+        
+        ## cell styles for summary sheets
+        # cell style for row OK
+        SUMMARY_CELL_STYLE_OK <- createCellStyle(workbook)
+        setFillPattern(SUMMARY_CELL_STYLE_OK, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(SUMMARY_CELL_STYLE_OK, color = XLC$COLOR.LIGHT_GREEN)
+        # cell style for row ERROR
+        SUMMARY_CELL_STYLE_ERROR <- createCellStyle(workbook)
+        setFillPattern(SUMMARY_CELL_STYLE_ERROR, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(SUMMARY_CELL_STYLE_ERROR, color = XLC$COLOR.RED)
+        # cell style for row details ERROR
+        SUMMARY_CELL_STYLE_ERROR_DETAILS <- createCellStyle(workbook)
+        setFillPattern(SUMMARY_CELL_STYLE_ERROR_DETAILS, fill = XLC$FILL.SOLID_FOREGROUND)
+        setFillForegroundColor(SUMMARY_CELL_STYLE_ERROR_DETAILS, color = XLC$COLOR.LIGHT_ORANGE)
+        
+        print('Reading current translation files')
+        
+        # current language summary sheet
+        CURRENT_LANG_SUMMARY_SHEET_NAME <- 'Summary Current Translation'
+        LANG_SUMMARY_COLUMN_NAME_DESCRIPTION <- 'Description'
+        LANG_SUMMARY_COLUMN_NAME_OUTPUT <- 'Output'
+        LANG_SUMMARY_COLUMN_LENGTH <- 2
+        currentLangStartRow <- 1
+        # the summary to be filled into the sheet
+        currentLangSummary <- data.frame(
+                Description = character(),
+                Output = character(),
+                stringsAsFactors = FALSE
+        )
+        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Current lang file:'
+        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- currentLangFile
+        currentLangStartRow <- currentLangStartRow + 1
+        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Current main file:'
+        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- currentMainFile
+        currentLangStartRow <- currentLangStartRow + 1
+
+        currentResultHandler <- function(result, langDf, mainDf) {
+                currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Number of translations in lang file:'
+                currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- nrow(langDf)
+                currentLangStartRow <- currentLangStartRow + 1
+                
+                currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Number of translations in main file:'
+                currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- nrow(mainDf)
+                currentLangStartRow <- currentLangStartRow + 1
+
+                # check whether there are missing IDs
+                langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
+                mainDfNotInLangDf <- mainDf[!mainDf$ID %in% langDf$ID,]
+                
+                langRowNumber = nrow(langDfNotInMainDf)
+                mainRowNumber = nrow(mainDfNotInLangDf)
+                mainRowError <- if (langRowNumber > 0) {
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- paste(langRowNumber ,'IDs in Lang file but not in Main file:')
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(langDfNotInMainDf$ID)
+                        currentLangStartRow <- currentLangStartRow + 1
+                        currentLangStartRow
+                } else {
+                        -1
+                }
+                langRowError <- if (mainRowNumber > 0) {
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <-  paste(mainRowNumber ,'IDs in Main file but not in Lang file:')
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(mainDfNotInLangDf$ID)
+                        currentLangStartRow <- currentLangStartRow + 1
+                        currentLangStartRow
+                } else {
+                        -1
+                }
+                # check for escape characters
+                originalTextEscapeList <- list()
+                for (i in 1:nrow(result)) {
+                        resultRow <- result[i,]
+                        if (!is.na(cpos(resultRow$OriginalText, 'amp;amp;')) 
+                            || !is.na(cpos(resultRow$OriginalText, 'lt;lt;'))
+                            || !is.na(cpos(resultRow$OriginalText, 'gt;gt;'))
+                            || !is.na(cpos(resultRow$OriginalText, 'apos;apos;'))
+                            || !is.na(cpos(resultRow$OriginalText, 'quot;quot;'))) {
+                                originalTextEscapeList <- c(originalTextEscapeList, resultRow$ID)
+                        }
+                }
+                originalTextRowError <- if (length(originalTextEscapeList) > 0) {
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- paste(length(textEscapeList), 'escape errors in attribute OriginalText with IDs:')
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(originalTextEscapeList)
+                        currentLangStartRow <- currentLangStartRow + 1
+                        currentLangStartRow
+                } else {
+                        -1
+                }
+                textEscapeList <- list()
+                for (i in 1:nrow(result)) {
+                        resultRow <- result[i,]
+                        if (!is.na(cpos(resultRow$Text, 'amp;amp;')) 
+                            || !is.na(cpos(resultRow$Text, 'lt;lt;'))
+                            || !is.na(cpos(resultRow$Text, 'gt;gt;'))
+                            || !is.na(cpos(resultRow$Text, 'apos;apos;'))
+                            || !is.na(cpos(resultRow$Text, 'quot;quot;'))) {
+                                textEscapeList <- c(textEscapeList, resultRow$ID)
+                        }
+                }
+                textRowError <- if (length(textEscapeList) > 0) {
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- paste(length(textEscapeList), 'escape errors in attribute Text with IDs:')
+                        currentLangSummary[currentLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(textEscapeList)
+                        currentLangStartRow <- currentLangStartRow + 1
+                        currentLangStartRow
+                } else {
+                        -1
+                }
+                
+                # create sheet only when it does not exists yet
+                if (!CURRENT_LANG_SUMMARY_SHEET_NAME %in% sheetNames) {
+                        createSheet(workbook, name = CURRENT_LANG_SUMMARY_SHEET_NAME)
+                }
+                writeWorksheet(workbook, currentLangSummary, sheet = CURRENT_LANG_SUMMARY_SHEET_NAME)
+                # output column description width is 100 characters long
+                setColumnWidth(workbook, sheet = CURRENT_LANG_SUMMARY_SHEET_NAME, column = which(colnames(currentLangSummary) == LANG_SUMMARY_COLUMN_NAME_OUTPUT), width = 100 * 256)
+                # auto-size for description column
+                setColumnWidth(workbook, sheet = CURRENT_LANG_SUMMARY_SHEET_NAME, column = which(colnames(currentLangSummary) == LANG_SUMMARY_COLUMN_NAME_DESCRIPTION), width = 30 * 256)
+                
+                # cell styles for the sheet
+                setCellStyle(workbook,
+                             sheet = CURRENT_LANG_SUMMARY_SHEET_NAME,
+                             row = 1,
+                             col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                             cellstyle = CELL_STYLE_HEADER)
+                if (mainRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = CURRENT_LANG_SUMMARY_SHEET_NAME,
+                                     row = mainRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+                if (langRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = CURRENT_LANG_SUMMARY_SHEET_NAME,
+                                     row = langRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+                if (originalTextRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = CURRENT_LANG_SUMMARY_SHEET_NAME,
+                                     row = originalTextRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+                if (textRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = CURRENT_LANG_SUMMARY_SHEET_NAME,
+                                     row = textRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+        }
+        currentTranslation <- loadTranslation(currentLangFile, currentMainFile, currentResultHandler)
+        
+        print('Reading latest translation files')
+        # latest language summary sheet
+        LATEST_LANG_SUMMARY_SHEET_NAME <- 'Summary Latest Translation'
+        latestLangStartRow <- 1
+        # the summary to be filled into the sheet
+        latestLangSummary <- data.frame(
+                Description = character(),
+                Output = character(),
+                stringsAsFactors = FALSE
+        )
+        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Latest lang file:'
+        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- currentLangFile
+        latestLangStartRow <- latestLangStartRow + 1
+        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Latest main file:'
+        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- currentMainFile
+        latestLangStartRow <- latestLangStartRow + 1
+        
+        latestResultHandler <- function(result, langDf, mainDf) {
+                latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Number of translations in lang file:'
+                latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- nrow(langDf)
+                latestLangStartRow <- latestLangStartRow + 1
+                
+                latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- 'Number of translations in main file:'
+                latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- nrow(mainDf)
+                latestLangStartRow <- latestLangStartRow + 1
+                
+                # check whether there are missing IDs
+                langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
+                mainDfNotInLangDf <- mainDf[!mainDf$ID %in% langDf$ID,]
+                
+                langRowNumber = nrow(langDfNotInMainDf)
+                mainRowNumber = nrow(mainDfNotInLangDf)
+                mainRowError <- if (langRowNumber > 0) {
+                        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- paste(langRowNumber , 'IDs in Lang file but not in Main file:')
+                        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(langDfNotInMainDf$ID)
+                        latestLangStartRow <- latestLangStartRow + 1
+                        latestLangStartRow
+                } else {
+                        -1
+                }
+                langRowError <- if (mainRowNumber > 0) {
+                        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <-  paste(mainRowNumber ,'IDs in Main file but not in Lang file:')
+                        latestLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(mainDfNotInLangDf$ID)
+                        latestLangStartRow <- latestLangStartRow + 1
+                        latestLangStartRow
+                } else {
+                        -1
+                }
+                # check for escape characters
+                originalTextEscapeList <- list()
+                for (i in 1:nrow(result)) {
+                        resultRow <- result[i,]
+                        if (!is.na(cpos(resultRow$OriginalText, 'amp;amp;')) 
+                            || !is.na(cpos(resultRow$OriginalText, 'lt;lt;'))
+                            || !is.na(cpos(resultRow$OriginalText, 'gt;gt;'))
+                            || !is.na(cpos(resultRow$OriginalText, 'apos;apos;'))
+                            || !is.na(cpos(resultRow$OriginalText, 'quot;quot;'))) {
+                                originalTextEscapeList <- c(originalTextEscapeList, resultRow$ID)
+                        }
+                }
+                originalTextRowError <- if (length(originalTextEscapeList) > 0) {
+                        currentLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- paste(length(textEscapeList), 'escape errors in attribute OriginalText with IDs:')
+                        currentLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(originalTextEscapeList)
+                        currentLangStartRow <- latestLangStartRow + 1
+                        latestLangStartRow
+                } else {
+                        -1
+                }
+                textEscapeList <- list()
+                for (i in 1:nrow(result)) {
+                        resultRow <- result[i,]
+                        if (!is.na(cpos(resultRow$Text, 'amp;amp;')) 
+                            || !is.na(cpos(resultRow$Text, 'lt;lt;'))
+                            || !is.na(cpos(resultRow$Text, 'gt;gt;'))
+                            || !is.na(cpos(resultRow$Text, 'apos;apos;'))
+                            || !is.na(cpos(resultRow$Text, 'quot;quot;'))) {
+                                textEscapeList <- c(textEscapeList, resultRow$ID)
+                        }
+                }
+                textRowError <- if (length(textEscapeList) > 0) {
+                        currentLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_DESCRIPTION] <- paste(length(textEscapeList), 'escape errors in attribute Text with IDs:')
+                        currentLangSummary[latestLangStartRow, LANG_SUMMARY_COLUMN_NAME_OUTPUT] <- toString(textEscapeList)
+                        latestLangStartRow <- latestLangStartRow + 1
+                        latestLangStartRow
+                } else {
+                        -1
+                }
+                
+                # create sheet only when it does not exists yet
+                if (!LATEST_LANG_SUMMARY_SHEET_NAME %in% sheetNames) {
+                        createSheet(workbook, name = LATEST_LANG_SUMMARY_SHEET_NAME)
+                }
+                
+                writeWorksheet(workbook, latestLangSummary, sheet = LATEST_LANG_SUMMARY_SHEET_NAME)
+                # output column description width is 100 characters long
+                setColumnWidth(workbook, sheet = LATEST_LANG_SUMMARY_SHEET_NAME, column = which(colnames(latestLangSummary) == LANG_SUMMARY_COLUMN_NAME_OUTPUT), width = 100 * 256)
+                # auto-size for description column
+                setColumnWidth(workbook, sheet = LATEST_LANG_SUMMARY_SHEET_NAME, column = which(colnames(latestLangSummary) == LANG_SUMMARY_COLUMN_NAME_DESCRIPTION), width = -1)
+
+                # cell styles for the sheet
+                setCellStyle(workbook,
+                             sheet = LATEST_LANG_SUMMARY_SHEET_NAME,
+                             row = 1,
+                             col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                             cellstyle = CELL_STYLE_HEADER)
+                if (mainRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = LATEST_LANG_SUMMARY_SHEET_NAME,
+                                     row = mainRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+                if (langRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = LATEST_LANG_SUMMARY_SHEET_NAME,
+                                     row = langRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+                if (originalTextRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = LATEST_LANG_SUMMARY_SHEET_NAME,
+                                     row = originalTextRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+                if (textRowError != -1) {
+                        setCellStyle(workbook,
+                                     sheet = LATEST_LANG_SUMMARY_SHEET_NAME,
+                                     row = textRowError,
+                                     col = 1:LANG_SUMMARY_COLUMN_LENGTH,
+                                     cellstyle = SUMMARY_CELL_STYLE_ERROR)
+                }
+        }
+        latestTranslation <- loadTranslation(latestLangFile, latestMainFile, latestResultHandler)
         
         #################### Functions, Constants ####################
         
@@ -26,25 +338,12 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         COLUMN_NAME_DESCRIPTION <- 'Description'
         columnList <- list(COLUMN_NAME_ORIGINAL_TEXT, COLUMN_NAME_TEXT)
         
-        
         # summary sheet
         SUMMARY_SHEET_NAME <- 'Summary Sheets'
         SUMMARY_COLUMN_NAME_SHEET <- 'Sheet'
         SUMMARY_COLUMN_NAME_STATUS <- 'Status'
         SUMMARY_COLUMN_NAME_DESCRIPTION <- 'Description'
         SUMMARY_COLUMN_LENGTH <- 3
-        # cell style for row OK
-        SUMMARY_CELL_STYLE_OK <- createCellStyle(workbook)
-        setFillPattern(SUMMARY_CELL_STYLE_OK, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(SUMMARY_CELL_STYLE_OK, color = XLC$COLOR.LIGHT_GREEN)
-        # cell style for row ERROR
-        SUMMARY_CELL_STYLE_ERROR <- createCellStyle(workbook)
-        setFillPattern(SUMMARY_CELL_STYLE_ERROR, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(SUMMARY_CELL_STYLE_ERROR, color = XLC$COLOR.RED)
-        # cell style for row details ERROR
-        SUMMARY_CELL_STYLE_ERROR_DETAILS <- createCellStyle(workbook)
-        setFillPattern(SUMMARY_CELL_STYLE_ERROR_DETAILS, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(SUMMARY_CELL_STYLE_ERROR_DETAILS, color = XLC$COLOR.LIGHT_ORANGE)
         # indicates position for next summary
         summaryRowIndex <- 1
         # the summary to be filled into the sheet
@@ -53,35 +352,10 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 Status = character(),
                 stringsAsFactors = FALSE
                 )
+        # create sheet only when it does not exists yet
         if (!SUMMARY_SHEET_NAME %in% sheetNames) {
                 createSheet(workbook, name = SUMMARY_SHEET_NAME)
         }
-        
-        # define cell style and color for Excel for highlighting:
-        # - changes in a row: color for complete row
-        # - changes in original text: color for a cell in that row
-        # - changes in text: color for a cell in that row
-        
-        # define cell style and color for header row
-        CELL_STYLE_HEADER <- createCellStyle(workbook)
-        setFillPattern(CELL_STYLE_HEADER, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(CELL_STYLE_HEADER, color = XLC$COLOR.LIGHT_BLUE)
-        
-        # define cell style and color for row changes
-        CELL_STYLE_ROW_CHANGED <- createCellStyle(workbook)
-        setWrapText(CELL_STYLE_ROW_CHANGED, wrap = T)
-        setFillPattern(CELL_STYLE_ROW_CHANGED, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(CELL_STYLE_ROW_CHANGED, color = XLC$COLOR.LIGHT_YELLOW)
-        
-        # define cell style and color for original text and text changes in a single cell
-        CELL_STYLE_TEXT_CHANGED <- createCellStyle(workbook)
-        setWrapText(CELL_STYLE_TEXT_CHANGED, wrap = T)
-        setFillPattern(CELL_STYLE_TEXT_CHANGED, fill = XLC$FILL.SOLID_FOREGROUND)
-        setFillForegroundColor(CELL_STYLE_TEXT_CHANGED, color = XLC$COLOR.LIGHT_ORANGE)
-        
-        # define cell style for wrapping text
-        CELL_STYLE_WRAP_TEXT <- createCellStyle(workbook)
-        setWrapText(CELL_STYLE_WRAP_TEXT, wrap = T)
         
         updateSheetStyles <- function() {
                 # something has changed?
@@ -326,7 +600,8 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 }
         }
         setColumnWidth(workbook, sheet = SUMMARY_SHEET_NAME, column = 1:3, width = -1)
-
+        # seems not to work: set active sheet...
+        setActiveSheet(workbook, sheet = SUMMARY_SHEET_NAME)
         # save result
         saveWorkbook(workbook, paste('new_', excelFile))
 }

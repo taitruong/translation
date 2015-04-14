@@ -3,7 +3,11 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XML)
 
 # Creates a data frame with the columns ID, Key, and Text
-loadTranslation <- function(langFile, mainFile) {
+loadTranslation <- function(langFile, 
+                            mainFile, 
+                            resultHandler = NULL # handler accepts must accept these params:
+                             # langDfNotInMainDf - data frame from lang file with rows that does not exist in main file by ID
+                            ) {
         # Base class loading XML file with Translation tags
         loadXml <- function(filename, getAttributes) {
                 doc <- xmlParse(filename)
@@ -111,16 +115,13 @@ loadTranslation <- function(langFile, mainFile) {
         print('Checking whether IDs in lang file exist in main file')
         
         # checking whether all IDs from lang file does also exist in main file
-        langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
-        if (nrow(langDfNotInMainDf) > 0) {
-                stop(c('The following IDs from the lang file are NOT in the main file: ', toString(langDfNotInMainDf$ID)))
-        }
-        
-        # makre sure both data frame has same row size
-        if (nrow(langDf) != nrow(mainDf)) {
-                stop(c('Lang file size (', nrow(langDf), ') is not equal main file size (', nrow(mainDf), ')'))
-        }
-        
         print('Merging main and lang data frames...')
-        merge(mainDf, langDf)
+        result <- merge(mainDf, langDf, by = 'ID')
+        
+        # result handling
+        if (!is.null(resultHandler)) {
+                resultHandler(result, langDf, mainDf)
+        }
+        
+        result
 }
