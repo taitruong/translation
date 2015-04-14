@@ -21,11 +21,14 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
         # the columns to be populated and checked
         COLUMN_NAME_ORIGINAL_TEXT <- 'OriginalText'
         COLUMN_NAME_TEXT <- 'Text'
+        COLUMN_NAME_ID <- 'ID'
+        COLUMN_NAME_KEY <- 'Key'
+        COLUMN_NAME_DESCRIPTION <- 'Description'
         columnList <- list(COLUMN_NAME_ORIGINAL_TEXT, COLUMN_NAME_TEXT)
         
         
         # summary sheet
-        SUMMARY_SHEET_NAME <- 'Summary'
+        SUMMARY_SHEET_NAME <- 'Summary Sheets'
         SUMMARY_COLUMN_NAME_SHEET <- 'Sheet'
         SUMMARY_COLUMN_NAME_STATUS <- 'Status'
         SUMMARY_COLUMN_NAME_DESCRIPTION <- 'Description'
@@ -153,6 +156,10 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                 colIndexOriginalText <- which(columnNames == COLUMN_NAME_ORIGINAL_TEXT)
                 # position of text (cell style when it has changed)
                 colIndexText <- which(columnNames == 'Text')
+                # position of id
+                colIndexId <- which(columnNames == 'ID')
+                # position of key
+                colIndexKey <- which(columnNames == 'Key')
                 
                 # initialize 3 lists holding changed rows:
                 # - row list for any cell changes (union of the other two change lists)
@@ -278,6 +285,16 @@ fillTranslationSheets <- function(excelFile, currentLangFile, currentMainFile, l
                         summary_row_list_sheet_status_error <- c(summary_row_list_sheet_status_error, summarySheetNameIndex + 1)
                 }
                 summary[summarySheetNameIndex, SUMMARY_COLUMN_NAME_STATUS] <- overallStatus
+                
+                # set column widths
+                # 1st column description width is 10 characters long
+                setColumnWidth(workbook, sheet = sheetName, column = which(columnNames == COLUMN_NAME_DESCRIPTION), width = 10 * 256)
+                for (i in 2:colLength) {
+                        # auto-size for id and key column
+                        # width 20 chars long for all other columns
+                        columnWidth <- if (i == colIndexId || i == colIndexKey) -1 else 20 * 256
+                        setColumnWidth(workbook, sheet = sheetName, column = i, width = columnWidth)
+                }
         }
         # first write data before updating style sheet
         writeWorksheet(workbook, summary, sheet = SUMMARY_SHEET_NAME)
