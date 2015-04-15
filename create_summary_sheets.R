@@ -1,59 +1,65 @@
 # problem loading rJava, http://stackoverflow.com/a/9120712
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
-LoadTranslationAndCreateSummarySheet <- function(language.file, main.file, workbook, summarySheetName) {
-	source('loadTranslation.R')
-	CreateLanguageSummarySheetHandler <- function(summarySheetName) {
+# needed for cpos functions
+require(cwhmisc)
+
+LoadTranslationAndCreateSummarySheet <- function(language.file, 
+																								 main.file, 
+																								 workbook, 
+																								 summary.sheet.name) {
+	source('load_translation.R')
+	CreateLanguageSummarySheetHandler <- function(summary.sheet.name) {
 		kColumnNameDescription <- 'Description'
 		kColumnNameOutput <- 'Output'
 		kColumnLength <- 2
-		startRow <- 1
+		start.row <- 1
 		# the summary to be filled into the sheet
-		summaryDf <- data.frame(
+		summary.df <- data.frame(
 			Description = character(),
 			Output = character(),
 			stringsAsFactors = FALSE
 		)
-		summaryDf[startRow, kColumnNameDescription] <- 'Language file:'
-		summaryDf[startRow, kColumnNameOutput] <- language.file
-		startRow <- startRow + 1
-		summaryDf[startRow, kColumnNameDescription] <- 'Main file:'
-		summaryDf[startRow, kColumnNameOutput] <- main.file
-		startRow <- startRow + 1
+		summary.df[start.row, kColumnNameDescription] <- 'Language file:'
+		summary.df[start.row, kColumnNameOutput] <- language.file
+		start.row <- start.row + 1
+		summary.df[start.row, kColumnNameDescription] <- 'Main file:'
+		summary.df[start.row, kColumnNameOutput] <- main.file
+		start.row <- start.row + 1
 		
-		currentResultHandler <- function(result, langDf, mainDf) {
-			summaryDf[startRow, kColumnNameDescription] <- 'Number of translations in lang file:'
-			summaryDf[startRow, kColumnNameOutput] <- nrow(langDf)
-			startRow <- startRow + 1
+		translation.handler <- function(result, langDf, mainDf) {
+			summary.df[start.row, kColumnNameDescription] <- 'Number of translations in lang file:'
+			summary.df[start.row, kColumnNameOutput] <- nrow(langDf)
+			start.row <- start.row + 1
 			
-			summaryDf[startRow, kColumnNameDescription] <- 'Number of translations in main file:'
-			summaryDf[startRow, kColumnNameOutput] <- nrow(mainDf)
-			startRow <- startRow + 1
+			summary.df[start.row, kColumnNameDescription] <- 'Number of translations in main file:'
+			summary.df[start.row, kColumnNameOutput] <- nrow(mainDf)
+			start.row <- start.row + 1
 			
 			# check whether there are missing IDs
-			langDfNotInMainDf <- langDf[!langDf$ID %in% mainDf$ID,]
-			mainDfNotInLangDf <- mainDf[!mainDf$ID %in% langDf$ID,]
+			lang.df.not.in.main.df <- langDf[!langDf$ID %in% mainDf$ID,]
+			main.df.not.in.lang.df <- mainDf[!mainDf$ID %in% langDf$ID,]
 			
-			langRowNumber = nrow(langDfNotInMainDf)
-			mainRowNumber = nrow(mainDfNotInLangDf)
-			mainRowError <- if (langRowNumber > 0) {
-				summaryDf[startRow, kColumnNameDescription] <- paste(langRowNumber ,'IDs in Language file but not in Main file:')
-				summaryDf[startRow, kColumnNameOutput] <- toString(langDfNotInMainDf$ID)
-				startRow <- startRow + 1
-				startRow
+			lang.row.number = nrow(lang.df.not.in.main.df)
+			main.row.number = nrow(main.df.not.in.lang.df)
+			main.row.error <- if (lang.row.number > 0) {
+				summary.df[start.row, kColumnNameDescription] <- paste(lang.row.number ,'IDs in Language file but not in Main file:')
+				summary.df[start.row, kColumnNameOutput] <- toString(lang.df.not.in.main.df$ID)
+				start.row <- start.row + 1
+				start.row
 			} else {
 				-1
 			}
-			langRowError <- if (mainRowNumber > 0) {
-				summaryDf[startRow, kColumnNameDescription] <-  paste(mainRowNumber ,'IDs in Main file but not in Language file:')
-				summaryDf[startRow, kColumnNameOutput] <- toString(mainDfNotInLangDf$ID)
-				startRow <- startRow + 1
-				startRow
+			lang.row.error <- if (main.row.number > 0) {
+				summary.df[start.row, kColumnNameDescription] <-  paste(main.row.number ,'IDs in Main file but not in Language file:')
+				summary.df[start.row, kColumnNameOutput] <- toString(main.df.not.in.lang.df$ID)
+				start.row <- start.row + 1
+				start.row
 			} else {
 				-1
 			}
 			# check for escape errors e.g. for '<' it should be '&lt;' and not '&lt;lt;'
-			originalTextEscapeList <- list()
+			original.text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
 				if (!is.na(cpos(resultRow$OriginalText, 'amp;amp;')) 
@@ -61,18 +67,18 @@ LoadTranslationAndCreateSummarySheet <- function(language.file, main.file, workb
 						|| !is.na(cpos(resultRow$OriginalText, 'gt;gt;'))
 						|| !is.na(cpos(resultRow$OriginalText, 'apos;apos;'))
 						|| !is.na(cpos(resultRow$OriginalText, 'quot;quot;'))) {
-					originalTextEscapeList <- c(originalTextEscapeList, resultRow$ID)
+					original.text.escape.list <- c(original.text.escape.list, resultRow$ID)
 				}
 			}
-			originalTextRowError <- if (length(originalTextEscapeList) > 0) {
-				summaryDf[startRow, kColumnNameDescription] <- paste(length(textEscapeList), 'escape errors in attribute OriginalText with IDs:')
-				summaryDf[startRow, kColumnNameOutput] <- toString(originalTextEscapeList)
-				startRow <- startRow + 1
-				startRow
+			original.text.row.error <- if (length(original.text.escape.list) > 0) {
+				summary.df[start.row, kColumnNameDescription] <- paste(length(text.escape.list), 'escape errors in attribute OriginalText with IDs:')
+				summary.df[start.row, kColumnNameOutput] <- toString(original.text.escape.list)
+				start.row <- start.row + 1
+				start.row
 			} else {
 				-1
 			}
-			textEscapeList <- list()
+			text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
 				if (!is.na(cpos(resultRow$Text, 'amp;amp;')) 
@@ -80,64 +86,64 @@ LoadTranslationAndCreateSummarySheet <- function(language.file, main.file, workb
 						|| !is.na(cpos(resultRow$Text, 'gt;gt;'))
 						|| !is.na(cpos(resultRow$Text, 'apos;apos;'))
 						|| !is.na(cpos(resultRow$Text, 'quot;quot;'))) {
-					textEscapeList <- c(textEscapeList, resultRow$ID)
+					text.escape.list <- c(text.escape.list, resultRow$ID)
 				}
 			}
-			textRowError <- if (length(textEscapeList) > 0) {
-				summaryDf[startRow, kColumnNameDescription] <- paste(length(textEscapeList), 'escape errors in attribute Text with IDs:')
-				summaryDf[startRow, kColumnNameOutput] <- toString(textEscapeList)
-				startRow <- startRow + 1
-				startRow
+			text.row.error <- if (length(text.escape.list) > 0) {
+				summary.df[start.row, kColumnNameDescription] <- paste(length(text.escape.list), 'escape errors in attribute Text with IDs:')
+				summary.df[start.row, kColumnNameOutput] <- toString(text.escape.list)
+				start.row <- start.row + 1
+				start.row
 			} else {
 				-1
 			}
 			
 			# create sheet only when it does not exists yet
-			if (!summarySheetName %in% getSheets(workbook)) {
-				createSheet(workbook, name = summarySheetName)
+			if (!summary.sheet.name %in% getSheets(workbook)) {
+				createSheet(workbook, name = summary.sheet.name)
 			}
-			writeWorksheet(workbook, summaryDf, sheet = summarySheetName)
+			writeWorksheet(workbook, summary.df, sheet = summary.sheet.name)
 			# output column description width is 100 characters long
-			setColumnWidth(workbook, sheet = summarySheetName, column = which(colnames(summaryDf) == kColumnNameOutput), width = 100 * 256)
+			setColumnWidth(workbook, sheet = summary.sheet.name, column = which(colnames(summary.df) == kColumnNameOutput), width = 100 * 256)
 			# auto-size for description column
-			setColumnWidth(workbook, sheet = summarySheetName, column = which(colnames(summaryDf) == kColumnNameDescription), width = 30 * 256)
+			setColumnWidth(workbook, sheet = summary.sheet.name, column = which(colnames(summary.df) == kColumnNameDescription), width = 30 * 256)
 			
 			# cell styles for the sheet
 			setCellStyle(workbook,
-									 sheet = summarySheetName,
+									 sheet = summary.sheet.name,
 									 row = 1,
 									 col = 1:kColumnLength,
-									 cellstyle = CELL_STYLE_HEADER)
-			if (mainRowError != -1) {
+									 cellstyle = kCellStyleHeader)
+			if (main.row.error != -1) {
 				setCellStyle(workbook,
-										 sheet = summarySheetName,
-										 row = mainRowError,
+										 sheet = summary.sheet.name,
+										 row = main.row.error,
 										 col = 1:kColumnLength,
-										 cellstyle = SUMMARY_CELL_STYLE_ERROR)
+										 cellstyle = kCellStyleSummaryError)
 			}
-			if (langRowError != -1) {
+			if (lang.row.error != -1) {
 				setCellStyle(workbook,
-										 sheet = summarySheetName,
-										 row = langRowError,
+										 sheet = summary.sheet.name,
+										 row = lang.row.error,
 										 col = 1:kColumnLength,
-										 cellstyle = SUMMARY_CELL_STYLE_ERROR)
+										 cellstyle = kCellStyleSummaryError)
 			}
-			if (originalTextRowError != -1) {
+			if (original.text.row.error != -1) {
 				setCellStyle(workbook,
-										 sheet = summarySheetName,
-										 row = originalTextRowError,
+										 sheet = summary.sheet.name,
+										 row = original.text.row.error,
 										 col = 1:kColumnLength,
-										 cellstyle = SUMMARY_CELL_STYLE_ERROR)
+										 cellstyle = kCellStyleSummaryError)
 			}
-			if (textRowError != -1) {
+			if (text.row.error != -1) {
 				setCellStyle(workbook,
-										 sheet = summarySheetName,
-										 row = textRowError,
+										 sheet = summary.sheet.name,
+										 row = text.row.error,
 										 col = 1:kColumnLength,
-										 cellstyle = SUMMARY_CELL_STYLE_ERROR)
+										 cellstyle = kCellStyleSummaryError)
 			}
 		}
 	}
 	# load and return data frame
-	loadTranslation(language.file, main.file, CreateLanguageSummarySheetHandler(summarySheetName))
+	LoadTranslation(language.file, main.file, CreateLanguageSummarySheetHandler(summary.sheet.name))
 }

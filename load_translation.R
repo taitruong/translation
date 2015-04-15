@@ -3,57 +3,58 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XML)
 
 # Creates a data frame with the columns ID, Key, and Text
-loadTranslation <- function(langFile, 
-                            mainFile, 
-                            resultHandler = NULL # handler accepts must accept these params:
-                             # langDfNotInMainDf - data frame from lang file with rows that does not exist in main file by ID
+LoadTranslation <- function(lang.file, 
+                            main.file, 
+                            translation.handler = NULL # handler must accept these params:
+														 # result data frame: containing the merged df of both translation files
+                             # language data frame
+														 # main data frame
                             ) {
         # Base class loading XML file with Translation tags
-        loadXml <- function(filename, getAttributes) {
+        LoadXml <- function(filename, getAttributes) {
                 doc <- xmlParse(filename)
                 root <- xmlRoot(doc)
                 # read all Translation tags
                 df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
-                
         }
         
         # Creates a data frame with the columns ID and Key
-        loadMain <- function(filename) {
-                df <- loadXml(filename, getAttributes <- function(translationTag){
+        LoadMain <- function(filename) {
+                df <- LoadXml(filename, getAttributes <- function(translationTag){
                         # get attributes
                         attributes <- xmlAttrs(translationTag)
-                        attrNames <- names(attributes)
+                        attribute.names <- names(attributes)
 
                         # get attributes
-                        if (!'ID' %in% attrNames) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                        if (!'ID' %in% attribute.names) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
                         id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
                         
-                        if (!'Key' %in% attrNames) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
+                        if (!'Key' %in% attribute.names) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
                         key <- attributes[['Key']]
                         
-                        if (!'OriginalText' %in% attrNames) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
+                        if (!'OriginalText' %in% attribute.names) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
                         # workaround retrieving attribute via 'raw' toString function 
                         # for some reason retrieving value via attributes[['SomeAttribute']]
                         # does not return special characters (e.g. ä,ö,ü) correctly - though XML is in UTF-8!
                         # one nice side effect: escape characters like '&lt;', '&amp;' are not converted to '<', '&', etc.
-                        originalText <- toString.XMLNode(translationTag)
-                        originalText <- sub('OriginalText=\"', '', substring(originalText, regexpr('OriginalText=\"', originalText)))
-                        originalText <- substring(originalText, 1, regexpr('\"', originalText) - 1)
+                        original.text <- toString.XMLNode(translationTag)
+                        original.text <- sub('OriginalText=\"', '', substring(original.text, regexpr('OriginalText=\"', original.text)))
+                        original.text <- substring(original.text, 1, regexpr('\"', original.text) - 1)
                         
                         # unusable attributes' xmlAttrs function - since special characters are not treated correctly
-                        #originalText <- attributes[['OriginalText']]
+                        #original.text <- attributes[['OriginalText']]
 
                         # not needed since we don't use attributes' xmlAttrs function
                         # attention: text may have escape characters and unfortunately
                         # they are converted (probably by Java) e.g. from '&amp;' to '&'
                         # therefore we have to convert it back to escape characters
-                        #originalText <- gsub(pattern='&', x=originalText, '&amp;', fixed=T)
-                        #originalText <- gsub(pattern='<', x=originalText, '&lt;', fixed=T)
-                        #originalText <- gsub(pattern='>', x=originalText, '&gt;', fixed=T)
-                        #originalText <- gsub(pattern="'", x=originalText, '&apos;', fixed=T)
-                        #originalText <- gsub(pattern='"', x=originalText, '&quot;', fixed=T)
+                        #original.text <- gsub(pattern='&', x=original.text, '&amp;', fixed=T)
+                        #original.text <- gsub(pattern='<', x=original.text, '&lt;', fixed=T)
+                        #original.text <- gsub(pattern='>', x=original.text, '&gt;', fixed=T)
+                        #original.text <- gsub(pattern="'", x=original.text, '&apos;', fixed=T)
+                        #original.text <- gsub(pattern='"', x=original.text, '&quot;', fixed=T)
                         
-                        c(ID = id, Key = key, OriginalText = originalText)
+                        c(ID = id, Key = key, OriginalText = original.text)
                         # no need to use sapply c(sapply(xmlChildren(translationTag), xmlValue), ID = id, Text = text)
                 })
                 
@@ -66,16 +67,16 @@ loadTranslation <- function(langFile,
                 df[order(df[,1]),]
         }
 
-        print(paste('Loading lang file', langFile))
-        langDf <- loadXml(langFile, getAttributes <- function(translationTag){
+        print(paste('Loading lang file', lang.file))
+        lang.df <- LoadXml(lang.file, getAttributes <- function(translationTag){
                 # get attributes
                 attributes <- xmlAttrs(translationTag)
-                attrNames <- names(attributes)
+                attribute.names <- names(attributes)
 
-                if (!'ID' %in% attrNames) stop(c(langFile, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
+                if (!'ID' %in% attribute.names) stop(c(lang.file, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
                 id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
                 
-                if (!'Text' %in% attrNames) stop(c(langFile, ': Missing attribute Text in:', toString.XMLNode(translationTag)))
+                if (!'Text' %in% attribute.names) stop(c(lang.file, ': Missing attribute Text in:', toString.XMLNode(translationTag)))
                 # workaround retrieving attribute via 'raw' toString function 
                 # for some reason retrieving value via attributes[['SomeAttribute']]
                 # does not return special characters (e.g. ä,ö,ü) correctly - though XML is in UTF-8!
@@ -104,23 +105,23 @@ loadTranslation <- function(langFile,
         # TODO: data frame elements are for some reason a list with a single value, so here we need to transform
         # transform into new data frame by extracting value from singleton list and defining type (as.numeric, etc.)
         # make ID numeric, Text as character
-        langDf <- transform(langDf, ID = as.numeric(ID), Text = as.character(Text))
+        lang.df <- transform(lang.df, ID = as.numeric(ID), Text = as.character(Text))
         
         # sort by first column ID
-        langDf[order(langDf[,1]),]
+        lang.df[order(lang.df[,1]),]
 
-        print(paste('Loading main file', mainFile))
-        mainDf <- loadMain(mainFile)
+        print(paste('Loading main file', main.file))
+        main.df <- LoadMain(main.file)
         
         print('Checking whether IDs in lang file exist in main file')
         
         # checking whether all IDs from lang file does also exist in main file
         print('Merging main and lang data frames...')
-        result <- merge(mainDf, langDf, by = 'ID')
+        result <- merge(main.df, lang.df, by = 'ID')
         
         # result handling
-        if (!is.null(resultHandler)) {
-                resultHandler(result, langDf, mainDf)
+        if (!is.null(translation.handler)) {
+                translation.handler(result, lang.df, main.df)
         }
         
         result
