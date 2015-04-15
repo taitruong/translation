@@ -14,51 +14,41 @@ FillTranslationSheets <- function(excel.file,
 	workbook <- loadWorkbook(excel.file)
 	sheet.names <- getSheets(workbook)
 	sheets <- readWorksheet(workbook, sheet.names)
-	# define cell style and color for Excel for highlighting:
-	# - changes in a row: color for complete row
-	# - changes in original text: color for a cell in that row
-	# - changes in text: color for a cell in that row
 	
+	#################### initialisations, variables, constants, and function definitions ####################
+	
+	# define cell style and color for Excel for highlighting
 	## cell styles for translation sheets
-	# define cell style and color for header row
+	### define cell style and color for header row
 	kCellStyleHeader <<- createCellStyle(workbook)
 	setFillPattern(kCellStyleHeader, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleHeader, color = XLC$COLOR.LIGHT_BLUE)
-	# define cell style and color for row changes
+	### define cell style and color for row changes
 	kCellStyleRowChanged <- createCellStyle(workbook)
 	setWrapText(kCellStyleRowChanged, wrap = T)
 	setFillPattern(kCellStyleRowChanged, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleRowChanged, color = XLC$COLOR.LIGHT_YELLOW)
-	# define cell style and color for original text and text changes in a single cell
+	### define cell style and color for original text and text changes in a single cell
 	kCellStyleTextChanged <- createCellStyle(workbook)
 	setWrapText(kCellStyleTextChanged, wrap = T)
 	setFillPattern(kCellStyleTextChanged, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleTextChanged, color = XLC$COLOR.LIGHT_ORANGE)
-	# define cell style for wrapping text
+	### define cell style for wrapping text
 	kCellStyleWrapText <- createCellStyle(workbook)
 	setWrapText(kCellStyleWrapText, wrap = T)
-	
 	## cell styles for summary sheets
-	# cell style for row OK
+	### cell style for row OK
 	kCellStyleSummaryOk <<- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryOk, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryOk, color = XLC$COLOR.LIGHT_GREEN)
-	# cell style for row ERROR
+	### cell style for row ERROR
 	kCellStyleSummaryError <<- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryError, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryError, color = XLC$COLOR.RED)
-	# cell style for row details ERROR
+	### cell style for row details ERROR
 	kCellStyleSummaryErrorDetails <<- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryErrorDetails, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryErrorDetails, color = XLC$COLOR.LIGHT_ORANGE)
-	
-	print('Reading current translation files')
-	currentTranslation <- LoadTranslationAndCreateSummarySheet(current.language.file, current.main.file, workbook, 'Summary Current Translation')
-	
-	print('Reading latest translation files')
-	#latestTranslation <- LoadTranslationAndCreateSummarySheet(latest.language.file, latest.main.file, workbook, 'Summary Latest Translation')
-	
-	#################### Functions, Constants ####################
 	
 	# skip first 3 rows since they contain no keys / only header infos
 	kRowIndexFirstKey <- 4
@@ -69,7 +59,7 @@ FillTranslationSheets <- function(excel.file,
 	kColumnNameId <- 'ID'
 	kColumnNameKey <- 'Key'
 	kColumnNameDescription <- 'Description'
-	columnList <- list(kColumnNameOriginalText, kColumnNameText)
+	populate.columns.list <- list(kColumnNameOriginalText, kColumnNameText)
 	
 	# summary sheet
 	kSummarySheetName <- 'Summary Sheets'
@@ -89,7 +79,7 @@ FillTranslationSheets <- function(excel.file,
 	if (!kSummarySheetName %in% sheet.names) {
 		createSheet(workbook, name = kSummarySheetName)
 	}
-		
+	
 	# function to populate a sheet's cell
 	# returns TRUE if it has changed else FALSE
 	ValueChanged <- function(cellValue, translationText) {
@@ -102,12 +92,19 @@ FillTranslationSheets <- function(excel.file,
 			FALSE
 		}
 	}
-	#################### END ####################
 	
 	# the lists containing row indices with status ok or error
 	summary.row.list.sheet.status.ok <- list()
 	summary.row.list.sheet.status.error <- list()
 	summary.row.list.sheet.details.error <- list()
+	
+	#################### END ####################
+	
+	print('Reading current translation files')
+	currentTranslation <- LoadTranslationAndCreateSummarySheet(current.language.file, current.main.file, workbook, 'Summary Current Translation')
+	
+	print('Reading latest translation files')
+	latestTranslation <- LoadTranslationAndCreateSummarySheet(latest.language.file, latest.main.file, workbook, 'Summary Latest Translation')
 	
 	# process for each sheet:
 	# read key in each row
@@ -148,7 +145,7 @@ FillTranslationSheets <- function(excel.file,
 		# is there any data?
 		row.numbers <- nrow(current.sheet)
 		if (row.numbers >= kRowIndexFirstKey) {
-			print(paste('Processing sheet', sheet.name))
+			print(paste('Populating sheet', sheet.name))
 			
 			# iterate through each row and start filling the sheet
 			# using our translation data frames
@@ -175,16 +172,9 @@ FillTranslationSheets <- function(excel.file,
 					changed.columns <- list()
 					
 					# fill columns
-					for (column.name in columnList) {
+					for (column.name in populate.columns.list) {
 						if (ValueChanged(current.sheet[row.number, column.name], translation.row[column.name])) {
-							print(paste('change ', 
-													column.name, 
-													' \'', 
-													current.sheet[row.number, column.name], 
-													'\' to \'', 
-													translation.row[column.name], 
-													'\'', 
-													sep = ''))
+							#print(paste('> change ', column.name, ' \'', current.sheet[row.number, column.name], '\' to \'', translation.row[column.name], '\'', sep = ''))
 							
 							# set cell value
 							current.sheet[row.number, column.name] <- translation.row[column.name]
@@ -226,10 +216,12 @@ FillTranslationSheets <- function(excel.file,
 				}
 			}
 			
+			print('> update worksheet')
 			# first write the sheet back into the workbook
 			# before doing further changes e.g. cell styles
 			writeWorksheet(workbook, current.sheet, sheet = sheet.name)
-
+			
+			print('> update styles in sheet')
 			# update sheet styles
 			# something has changed?
 			# highlight the rows with our defined cell styles above
@@ -268,16 +260,20 @@ FillTranslationSheets <- function(excel.file,
 											 cellstyle = kCellStyleWrapText)
 				}
 			}
+			print('> done populating sheet')
 		}
-		text <- ''
-		for (column.name in columnList) {
+		
+		# write output for number of sheet changes in each column
+		summary.column.status.text <- ''
+		for (column.name in populate.columns.list) {
 			if (column.name == kColumnNameText) {
-				text <- paste(text, ' ', length(changed.text.rows), ' changes in ', column.name, '.', sep = '')
+				summary.column.status.text <- paste(summary.column.status.text, ' ', length(changed.text.rows), ' changes in ', column.name, '.', sep = '')
 			} else if (column.name == kColumnNameOriginalText) {
-				text <- paste(text, ' ', length(changed.original.rows), ' changes in ', column.name, '.', sep = '')
+				summary.column.status.text <- paste(summary.column.status.text, ' ', length(changed.original.rows), ' changes in ', column.name, '.', sep = '')
 			}
 		}
-		summary[summary.row.index, kSummaryColumnNameStatus] <- text
+		print(paste('>',summary.column.status.text))
+		summary[summary.row.index, kSummaryColumnNameStatus] <- summary.column.status.text
 		summary[summary.row.index, kSummaryColumnNameStatus] <- paste(length(changed.original.rows) + length(changed.text.rows), ' total changes.')
 		
 		# set header cell style for each sheet
@@ -299,7 +295,8 @@ FillTranslationSheets <- function(excel.file,
 			columnWidth <- if (i == column.index.id || i == column.index.key) -1 else 20 * 256
 			setColumnWidth(workbook, sheet = sheet.name, column = i, width = columnWidth)
 		}
-	}
+	} # end of processing sheets in for-loop 
+	
 	# first write data before updating style sheet
 	writeWorksheet(workbook, summary, sheet = kSummarySheetName)
 	setCellStyle(workbook,
