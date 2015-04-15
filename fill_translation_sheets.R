@@ -69,7 +69,7 @@ FillTranslationSheets <- function(excel.file,
 	kColumnNameId <- 'ID'
 	kColumnNameKey <- 'Key'
 	kColumnNameDescription <- 'Description'
-	populate.column.list <- list(kColumnNameOriginalText, kColumnNameText)
+	columnList <- list(kColumnNameOriginalText, kColumnNameText)
 	
 	# summary sheet
 	kSummarySheetName <- 'Summary Sheets'
@@ -158,7 +158,7 @@ FillTranslationSheets <- function(excel.file,
 				# read key from sheet
 				cell.value <- current.sheet[row.number, 'Key']
 				
-				# skip if Key cell is NULL or NA
+				# skip if Keycell is NULL or NA
 				if (is.null(cell.value) || is.na(cell.value)) {
 					next
 				}
@@ -175,7 +175,7 @@ FillTranslationSheets <- function(excel.file,
 					changed.columns <- list()
 					
 					# fill columns
-					for (column.name in populate.column.list) {
+					for (column.name in columnList) {
 						if (ValueChanged(current.sheet[row.number, column.name], translation.row[column.name])) {
 							print(paste('change ', 
 													column.name, 
@@ -270,7 +270,7 @@ FillTranslationSheets <- function(excel.file,
 			}
 		}
 		text <- ''
-		for (column.name in populate.column.list) {
+		for (column.name in columnList) {
 			if (column.name == kColumnNameText) {
 				text <- paste(text, ' ', length(changed.text.rows), ' changes in ', column.name, '.', sep = '')
 			} else if (column.name == kColumnNameOriginalText) {
