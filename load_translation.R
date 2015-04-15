@@ -3,8 +3,8 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XML)
 
 # Creates a data frame with the columns ID, Key, and Text
-LoadTranslation <- function(lang.file, 
-                            main.file, 
+LoadTranslation <- function(main.file, 
+                            lang.file, 
                             translation.handler = NULL # handler must accept these params:
 														 # result data frame: containing the merged df of both translation files
                              # language data frame

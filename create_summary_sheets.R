@@ -9,6 +9,21 @@ LoadTranslationAndCreateSummarySheet <- function(language.file,
 																								 workbook, 
 																								 summary.sheet.name) {
 	source('load_translation.R')
+
+	#################### initialisations, variables, constants, and function definitions ####################
+	
+	# define cell style and color for Excel for highlighting
+	## cell styles for translation sheets
+	### define cell style and color for header row
+	kCellStyleHeader <- createCellStyle(workbook)
+	setFillPattern(kCellStyleHeader, fill = XLC$FILL.SOLID_FOREGROUND)
+	setFillForegroundColor(kCellStyleHeader, color = XLC$COLOR.LIGHT_BLUE)
+
+	### cell style for row ERROR
+	kCellStyleSummaryError <<- createCellStyle(workbook)
+	setFillPattern(kCellStyleSummaryError, fill = XLC$FILL.SOLID_FOREGROUND)
+	setFillForegroundColor(kCellStyleSummaryError, color = XLC$COLOR.RED)
+
 	CreateLanguageSummarySheetHandler <- function(summary.sheet.name) {
 		kColumnNameDescription <- 'Description'
 		kColumnNameOutput <- 'Output'

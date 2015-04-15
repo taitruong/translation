@@ -1,18 +1,4 @@
-# problem loading rJava, http://stackoverflow.com/a/9120712
-Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
-require(XLConnect)
-
-FillTranslationSheets <- function(excel.file, 
-																	current.language.file, 
-																	current.main.file, 
-																	latest.language.file, 
-																	latest.main.file) {
-	source('create_summary_sheets.R')
-	
-	# read excel workbook and its sheets
-	print(paste('Reading workbook', excel.file))
-	workbook <- loadWorkbook(excel.file)
-	sheet.names <- getSheets(workbook)
+PopulateSheets <- function(workbook, current.translation, latest.translation, sheet.names) {
 	sheets <- readWorksheet(workbook, sheet.names)
 	
 	#################### initialisations, variables, constants, and function definitions ####################
@@ -20,7 +6,7 @@ FillTranslationSheets <- function(excel.file,
 	# define cell style and color for Excel for highlighting
 	## cell styles for translation sheets
 	### define cell style and color for header row
-	kCellStyleHeader <<- createCellStyle(workbook)
+	kCellStyleHeader <- createCellStyle(workbook)
 	setFillPattern(kCellStyleHeader, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleHeader, color = XLC$COLOR.LIGHT_BLUE)
 	### define cell style and color for row changes
@@ -100,12 +86,6 @@ FillTranslationSheets <- function(excel.file,
 	
 	#################### END ####################
 	
-	print('Reading current translation files')
-	currentTranslation <- LoadTranslationAndCreateSummarySheet(current.language.file, current.main.file, workbook, 'Summary Current Translation')
-	
-	print('Reading latest translation files')
-	latestTranslation <- LoadTranslationAndCreateSummarySheet(latest.language.file, latest.main.file, workbook, 'Summary Latest Translation')
-	
 	# process for each sheet:
 	# read key in each row
 	# based on the key read the translation data frames and populate cells
@@ -161,7 +141,7 @@ FillTranslationSheets <- function(excel.file,
 				}
 				
 				# get translation for this key
-				translation.row <- currentTranslation[currentTranslation$Key == cell.value,]
+				translation.row <- current.translation[current.translation$Key == cell.value,]
 				# there must be exactly one translation
 				result <- nrow(translation.row)
 				if (result == 1) {
@@ -329,7 +309,4 @@ FillTranslationSheets <- function(excel.file,
 	setColumnWidth(workbook, sheet = kSummarySheetName, column = 1:3, width = -1)
 	# seems not to work: set active sheet...
 	setActiveSheet(workbook, sheet = kSummarySheetName)
-	# save result
-	saveWorkbook(workbook, paste('new_', excel.file))
-	
 }
