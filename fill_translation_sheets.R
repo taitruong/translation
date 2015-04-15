@@ -56,7 +56,7 @@ FillTranslationSheets <- function(excel.file,
 	currentTranslation <- LoadTranslationAndCreateSummarySheet(current.language.file, current.main.file, workbook, 'Summary Current Translation')
 	
 	print('Reading latest translation files')
-	latestTranslation <- LoadTranslationAndCreateSummarySheet(latest.language.file, latest.main.file, workbook, 'Summary Latest Translation')
+	#latestTranslation <- LoadTranslationAndCreateSummarySheet(latest.language.file, latest.main.file, workbook, 'Summary Latest Translation')
 	
 	#################### Functions, Constants ####################
 	
@@ -69,7 +69,7 @@ FillTranslationSheets <- function(excel.file,
 	kColumnNameId <- 'ID'
 	kColumnNameKey <- 'Key'
 	kColumnNameDescription <- 'Description'
-	columnList <- list(kColumnNameOriginalText, kColumnNameText)
+	populate.column.list <- list(kColumnNameOriginalText, kColumnNameText)
 	
 	# summary sheet
 	kSummarySheetName <- 'Summary Sheets'
@@ -89,47 +89,7 @@ FillTranslationSheets <- function(excel.file,
 	if (!kSummarySheetName %in% sheet.names) {
 		createSheet(workbook, name = kSummarySheetName)
 	}
-	
-	UpdateSheetStyles <- function() {
-		# something has changed?
-		# highlight the rows with our defined cell styles above
-		for (row.number in kRowIndexFirstKey:row.numbers) {
-			if (row.number %in% changed.rows) {
-				# cell style for complete row has changed
-				setCellStyle(workbook,
-										 sheet = sheet.name,
-										 row = row.number,
-										 col = 1:column.length,
-										 cellstyle = kCellStyleRowChanged)
-				
-				# cell style for changed original text
-				if (row.number %in% changed.original.rows) {
-					setCellStyle(workbook, 
-											 sheet = sheet.name, 
-											 row = row.number, 
-											 col = column.index.original.text, 
-											 cellstyle = kCellStyleTextChanged)
-				}
-				
-				# cell style for changed text
-				if (row.number %in% changed.text.rows) {
-					setCellStyle(workbook, 
-											 sheet = sheet.name, 
-											 row = row.number, 
-											 col = column.index.text, 
-											 cellstyle = kCellStyleTextChanged)
-				}
-			} else {
-				# cell style for wrapping text on complete sheet 
-				setCellStyle(workbook,
-										 sheet = sheet.name,
-										 row = row.number,
-										 col = 1:column.length,
-										 cellstyle = kCellStyleWrapText)
-			}
-		}
-	}
-	
+		
 	# function to populate a sheet's cell
 	# returns TRUE if it has changed else FALSE
 	ValueChanged <- function(cellValue, translationText) {
@@ -215,7 +175,7 @@ FillTranslationSheets <- function(excel.file,
 					changed.columns <- list()
 					
 					# fill columns
-					for (column.name in columnList) {
+					for (column.name in populate.column.list) {
 						if (ValueChanged(current.sheet[row.number, column.name], translation.row[column.name])) {
 							print(paste('change ', 
 													column.name, 
@@ -269,11 +229,48 @@ FillTranslationSheets <- function(excel.file,
 			# first write the sheet back into the workbook
 			# before doing further changes e.g. cell styles
 			writeWorksheet(workbook, current.sheet, sheet = sheet.name)
-			
-			UpdateSheetStyles()
+
+			# update sheet styles
+			# something has changed?
+			# highlight the rows with our defined cell styles above
+			for (row.number in kRowIndexFirstKey:row.numbers) {
+				if (row.number %in% changed.rows) {
+					# cell style for complete row has changed
+					setCellStyle(workbook,
+											 sheet = sheet.name,
+											 row = row.number,
+											 col = 1:column.length,
+											 cellstyle = kCellStyleRowChanged)
+					
+					# cell style for changed original text
+					if (row.number %in% changed.original.rows) {
+						setCellStyle(workbook, 
+												 sheet = sheet.name, 
+												 row = row.number, 
+												 col = column.index.original.text, 
+												 cellstyle = kCellStyleTextChanged)
+					}
+					
+					# cell style for changed text
+					if (row.number %in% changed.text.rows) {
+						setCellStyle(workbook, 
+												 sheet = sheet.name, 
+												 row = row.number, 
+												 col = column.index.text, 
+												 cellstyle = kCellStyleTextChanged)
+					}
+				} else {
+					# cell style for wrapping text on complete sheet 
+					setCellStyle(workbook,
+											 sheet = sheet.name,
+											 row = row.number,
+											 col = 1:column.length,
+											 cellstyle = kCellStyleWrapText)
+				}
+			}
 		}
 		text <- ''
-		for (column.name in columnList) {
+		for (column.name in populate.column.list) {
 			if (column.name == kColumnNameText) {
 				text <- paste(text, ' ', length(changed.text.rows), ' changes in ', column.name, '.', sep = '')
 			} else if (column.name == kColumnNameOriginalText) {
