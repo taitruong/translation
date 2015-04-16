@@ -52,19 +52,19 @@ PopulateSheets <- function(workbook,
 	setWrapText(kCellStyleWrapText, wrap = T)
 	## cell styles for summary sheets
 	### cell style for row OK
-	kCellStyleSummaryOk <<- createCellStyle(workbook)
+	kCellStyleSummaryOk <- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryOk, 
 								 fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryOk, 
 												 color = XLC$COLOR.LIGHT_GREEN)
 	### cell style for row ERROR
-	kCellStyleSummaryError <<- createCellStyle(workbook)
+	kCellStyleSummaryError <- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryError, 
 								 fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryError, 
 												 color = XLC$COLOR.RED)
 	### cell style for row details ERROR
-	kCellStyleSummaryErrorDetails <<- createCellStyle(workbook)
+	kCellStyleSummaryErrorDetails <- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryErrorDetails, 
 								 fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryErrorDetails, 
@@ -80,19 +80,19 @@ PopulateSheets <- function(workbook,
 	kColumnNameId <- 'ID'
 	kColumnNameKey <- 'Key'
 	kColumnNameDescription <- 'Description'
-	populate.columns.list <- list(kColumnNameOriginalText, 
+	current.columns.list <- list(kColumnNameOriginalText, 
 																kColumnNameEnglishText, 
 																kColumnNameText)
 	# generate 'changed' column for each populated column
-	changed.columns.list <- list()
-	for (populate.column in populate.columns.list) {
-		changed.columns.list <- c(changed.columns.list, 
+	latest.columns.list <- list()
+	for (populate.column in current.columns.list) {
+		latest.columns.list <- c(latest.columns.list, 
 															paste(populate.column, 
 																		latest.column.suffix, 
 																		sep = ''))
 	}
-	all.columns.list <- c(populate.columns.list, 
-												changed.columns.list, 
+	all.columns.list <- c(current.columns.list, 
+												latest.columns.list, 
 												kColumnNameId, 
 												kColumnNameKey, 
 												kColumnNameDescription)
@@ -176,7 +176,7 @@ PopulateSheets <- function(workbook,
 					current.sheet[row.number, 'ID'] <- current.translation.row$ID
 					
 					# fill columns
-					for (column.name in populate.columns.list) {
+					for (column.name in current.columns.list) {
 						# set cell value
 						current.sheet[row.number, column.name] <- current.translation.row[column.name]
 						
@@ -293,7 +293,7 @@ PopulateSheets <- function(workbook,
 		# write output for number of sheet changes in each column
 		total.changes <- 0
 		summary.column.status.text <- ''
-		for (column.name in populate.columns.list) {
+		for (column.name in current.columns.list) {
 			# first check if there are rows (nrow) because
 			# calling which on empty causes an error
 			changes <- if (nrow(cell.style.rows.df) == 0) {

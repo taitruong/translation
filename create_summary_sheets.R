@@ -21,7 +21,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 	setFillForegroundColor(kCellStyleHeader, color = XLC$COLOR.LIGHT_BLUE)
 
 	### cell style for row ERROR
-	kCellStyleSummaryError <<- createCellStyle(workbook)
+	kCellStyleSummaryError <- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryError, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryError, color = XLC$COLOR.RED)
 

@@ -9,8 +9,8 @@ FillTranslationWorkbook <- function(excel.file,
 																	latest.main.file,
 																	latest.english.file,
 																	latest.language.file) {
-	debugSource('create_summary_sheets.R')
-	debugSource('populate_sheets.R')
+	source('create_summary_sheets.R')
+	source('populate_sheets.R')
 	
 	# read excel workbook and its sheets
 	print(paste('Reading workbook', excel.file))
