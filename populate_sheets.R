@@ -103,6 +103,7 @@ PopulateSheets <- function(workbook,
 	# based on the key read the translation data frames and populate cells
 	for (sheet.name in sheet.names) {
 		current.sheet <- readWorksheet(workbook, sheet = sheet.name)
+		current.sheet <- Re.Order.Columns(current.sheet)
 		
 		# initialize cell style list holding changed and error rows
 		cell.style.rows.df <- 
@@ -182,9 +183,7 @@ PopulateSheets <- function(workbook,
 					# fill text in column description
 					summary[summary.row.index, kSummaryColumnNameDescription] <- 
 						paste(current.nrow, ' current and ', latest.nrow, 
-									' latest translations found in Sheet \'', 
-									sheet.name, 
-									'\', row ', 
+									' latest translations found in sheet, row ', 
 									row.number+1, 
 									'.', 
 									sep = '')
@@ -272,6 +271,9 @@ PopulateSheets <- function(workbook,
 				}
 			}
 			print('> done populating sheet')
+		} else {
+			# save unchanged worksheet anyways since we have re-ordered columns
+			writeWorksheet(workbook, current.sheet, sheet = sheet.name)
 		}
 		
 		# write output for number of sheet changes in each column
@@ -376,4 +378,22 @@ PopulateSheets <- function(workbook,
 	# sets the active sheet
 	# (though the tab itself is not focused and highlighted...)
 	setActiveSheet(workbook, sheet = kSummarySheetName)
+}
+
+Re.Order.Columns <- function(translation.df) {
+	column.names <- colnames(translation.df)
+	unknown.columns <- setdiff(column.names,Translation$Xls.Column.All)
+	if (nrow(translation.df) > 0) {
+		for (column in Translation$Xls.Column.All) {
+			# first add missing columns
+			if (!column %in% column.names) {
+				translation.df[column] <- NA
+			}
+		}
+		# now re-order columns
+		translation.df[as.character(c(Translation$Xls.Column.All, unknown.columns))]
+	}	else {
+		column.names <- colnames(translation.df)
+		read.table(text=as.character(c(Translation$Xls.Column.All, unknown.columns)), header=T)
+	}
 }
