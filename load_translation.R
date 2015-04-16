@@ -17,7 +17,8 @@ LoadTranslation <- function(main.file,
 		doc <- xmlParse(filename)
 		root <- xmlRoot(doc)
 		# read all Translation tags
-		df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), stringsAsFactors = FALSE)
+		df <- as.data.frame(t(xpathSApply(root, "//*/Translation", getAttributes)), 
+												stringsAsFactors = FALSE)
 	}
 	
 	# Creates a data frame with the columns ID, Key, and OriginalText
@@ -28,22 +29,39 @@ LoadTranslation <- function(main.file,
 			attribute.names <- names(attributes)
 			
 			# get attributes
-			if (!'ID' %in% attribute.names) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
-			id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
+			if (!'ID' %in% attribute.names) 
+				stop(c(filename, 
+							 ': Missing attribute ID in:', 
+							 toString.XMLNode(translationTag)))
+			# TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID')))
+			# since in the code below when converted to a data frame it is a list - check later
+			id <- as.numeric(attributes[['ID']]) 
 			
-			if (!'Key' %in% attribute.names) stop(c(filename, ': Missing attribute Key in:', toString.XMLNode(translationTag)))
+			if (!'Key' %in% attribute.names) 
+				stop(c(filename, 
+							 ': Missing attribute Key in:', 
+							 toString.XMLNode(translationTag)))
 			key <- attributes[['Key']]
 			
-			if (!'OriginalText' %in% attribute.names) stop(c(filename, ': Missing attribute OriginalText in:', toString.XMLNode(translationTag)))
+			if (!'OriginalText' %in% attribute.names) 
+				stop(c(filename, 
+							 ': Missing attribute OriginalText in:', 
+							 toString.XMLNode(translationTag)))
 			# workaround retrieving attribute via 'raw' toString function 
 			# for some reason retrieving value via attributes[['SomeAttribute']]
 			# does not return special characters (e.g. ä,ö,ü) correctly - though XML is in UTF-8!
 			# one nice side effect: escape characters like '&lt;', '&amp;' are not converted to '<', '&', etc.
 			original.text <- toString.XMLNode(translationTag)
-			original.text <- sub('OriginalText=\"', '', substring(original.text, regexpr('OriginalText=\"', original.text)))
-			original.text <- substring(original.text, 1, regexpr('\"', original.text) - 1)
+			original.text <- sub('OriginalText=\"', 
+													 '', 
+													 substring(original.text, 
+													 					regexpr('OriginalText=\"',original.text)))
+			original.text <- substring(original.text, 
+																 1, 
+																 regexpr('\"', original.text) - 1)
 			
-			# unusable attributes' xmlAttrs function - since special characters are not treated correctly
+			# unusable attributes' xmlAttrs function
+			# since special characters are not treated correctly
 			#original.text <- attributes[['OriginalText']]
 			
 			# not needed since we don't use attributes' xmlAttrs function
@@ -63,7 +81,10 @@ LoadTranslation <- function(main.file,
 		# TODO: data frame elements are for some reason a list with a single value
 		# here we need to transform into new data frame by
 		# extracting each value and defining type (as.numeric, etc.)
-		df <- transform(df, ID = as.numeric(ID), Key = as.character(Key), OriginalText = as.character(OriginalText))
+		df <- transform(df, 
+										ID = as.numeric(ID), 
+										Key = as.character(Key), 
+										OriginalText = as.character(OriginalText))
 		
 		# sort by first column ID
 		df[order(df[,1]),]
@@ -76,17 +97,29 @@ LoadTranslation <- function(main.file,
 			attributes <- xmlAttrs(translationTag)
 			attribute.names <- names(attributes)
 			
-			if (!'ID' %in% attribute.names) stop(c(filename, ': Missing attribute ID in:', toString.XMLNode(translationTag)))
-			id <- as.numeric(attributes[['ID']]) # TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID'))) since in the code below when converted to a data frame it is a list - check later
+			if (!'ID' %in% attribute.names) 
+				stop(c(filename, 
+							 ': Missing attribute ID in:', 
+							 toString.XMLNode(translationTag)))
+			# TODO @tt cannot convert ID to numeric (as.numeric(xmlGetAttr('ID')))
+			# since in the code below when converted to a data frame it is a list - check later
+			id <- as.numeric(attributes[['ID']])
 			
-			if (!attribute.name %in% attribute.names) stop(c(filename, ': Missing attribute ', attribute.name, ' in:', toString.XMLNode(translationTag)))
+			if (!attribute.name %in% attribute.names) 
+				stop(c(filename, 
+							 ': Missing attribute ', 
+							 attribute.name, 
+							 ' in:', 
+							 toString.XMLNode(translationTag)))
 			# workaround retrieving attribute via 'raw' toString function 
 			# for some reason retrieving value via attributes[['SomeAttribute']]
 			# does not return special characters (e.g. ä,ö,ü) correctly - though XML is in UTF-8!
 			# one nice side effect: escape characters like '&lt;', '&amp;' are not converted to '<', '&', etc.
 			text <- toString.XMLNode(translationTag)
 			attribute.start <- paste(attribute.name, '=\"', sep='')
-			text <- sub(attribute.start, '', substring(text, regexpr(attribute.start, text)))
+			text <- sub(attribute.start, 
+									'', 
+									substring(text, regexpr(attribute.start, text)))
 			text <- substring(text, 1, regexpr('\"', text) - 1)
 			
 			# unusable attributes' xmlAttrs function - since special characters are not treated correctly
@@ -117,7 +150,9 @@ LoadTranslation <- function(main.file,
 	# TODO: data frame elements are for some reason a list with a single value
 	# here we need to transform into new data frame by
 	# extracting each value and defining type (as.numeric, etc.)
-	english.df <- transform(english.df, ID = as.numeric(ID), EnglishText = as.character(EnglishText))
+	english.df <- transform(english.df, 
+													ID = as.numeric(ID), 
+													EnglishText = as.character(EnglishText))
 	
 	# sort by first column ID
 	english.df[order(english.df[,1]),]
@@ -127,7 +162,9 @@ LoadTranslation <- function(main.file,
 	# TODO: data frame elements are for some reason a list with a single value
 	# here we need to transform into new data frame by
 	# extracting each value and defining type (as.numeric, etc.)
-	language.df <- transform(language.df, ID = as.numeric(ID), Text = as.character(Text))
+	language.df <- transform(language.df, 
+													 ID = as.numeric(ID), 
+													 Text = as.character(Text))
 	
 	# sort by first column ID
 	language.df[order(language.df[,1]),]
