@@ -21,14 +21,29 @@ FillTranslationWorkbook <- function(excel.file,
 	# do not use styles e.g. when calling writeWorksheet()
 	setStyleAction(workbook, XLC$STYLE_ACTION.NONE)
 	print('Reading current translation files')
-	current.translation <- LoadTranslationAndCreateSummarySheet(current.main.file, current.english.file, current.language.file, workbook, 'Summary Current Translation')
+	current.translation <- 
+		LoadTranslationAndCreateSummarySheet(current.main.file, 
+																				 current.english.file, 
+																				 current.language.file, 
+																				 workbook, 
+																				 'Summary Current Translation')
 	
 	print('Reading latest translation files')
-	latest.translation <- LoadTranslationAndCreateSummarySheet(latest.main.file, latest.english.file, latest.language.file, workbook, 'Summary Latest Translation')
+	latest.translation <- 
+		LoadTranslationAndCreateSummarySheet(latest.main.file, 
+																				 latest.english.file, 
+																				 latest.language.file, 
+																				 workbook, 
+																				 'Summary Latest Translation')
 	
-	PopulateSheets(workbook, current.translation, latest.translation, sheet.names)
+	PopulateSheets(workbook, 
+								 current.translation, 
+								 latest.translation, 
+								 sheet.names)
 	
 	# save result
-	saveWorkbook(workbook, paste('new_', excel.file))
+	result.filename <- paste('new_', excel.file)
+	print(paste('Saving', result.filename))
+	saveWorkbook(workbook, result.filename)
 	
 }

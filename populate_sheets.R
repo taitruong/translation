@@ -39,13 +39,13 @@ PopulateSheets <- function(workbook,
 								 fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleCellError, 
 												 color = XLC$COLOR.RED)
-	### define cell style and color for original text and text changes in a single cell
-	kCellStyleTextChanged <- createCellStyle(workbook)
-	setWrapText(kCellStyleTextChanged, 
+	### define cell style and color for cell changes
+	kCellStyleCellChanged <- createCellStyle(workbook)
+	setWrapText(kCellStyleCellChanged, 
 							wrap = T)
-	setFillPattern(kCellStyleTextChanged, 
+	setFillPattern(kCellStyleCellChanged, 
 								 fill = XLC$FILL.SOLID_FOREGROUND)
-	setFillForegroundColor(kCellStyleTextChanged, 
+	setFillForegroundColor(kCellStyleCellChanged, 
 												 color = XLC$COLOR.LIGHT_ORANGE)
 	### define cell style for wrapping text
 	kCellStyleWrapText <- createCellStyle(workbook)
@@ -136,7 +136,10 @@ PopulateSheets <- function(workbook,
 		current.sheet <- readWorksheet(workbook, sheet = sheet.name)
 		
 		# initialize 1 list holding broken rows and 3 lists holding changed rows:
-		cell.style.rows.df <- data.frame('column.name' = character(), 'row.number' = numeric(), 'style.type' = numeric(), stringsAsFactors = F)
+		cell.style.rows.df <- data.frame('column.name' = character(), 
+																		 'row.number' = numeric(), 
+																		 'style.type' = numeric(), 
+																		 stringsAsFactors = F)
 		
 		# summary of processing
 		overall.status <- 'OK'
@@ -166,8 +169,10 @@ PopulateSheets <- function(workbook,
 				}
 				
 				# get translation for this key
-				current.translation.row <- current.translation[current.translation$Key == cell.value,]
-				latest.translation.row <- latest.translation[latest.translation$Key == cell.value,]
+				current.translation.row <- 
+					current.translation[current.translation$Key == cell.value,]
+				latest.translation.row <- 
+					latest.translation[latest.translation$Key == cell.value,]
 				# there must be exactly one translation
 				current.nrow <- nrow(current.translation.row)
 				latest.nrow <- nrow(latest.translation.row)
@@ -178,15 +183,22 @@ PopulateSheets <- function(workbook,
 					# fill columns
 					for (column.name in current.columns.list) {
 						# set cell value
-						current.sheet[row.number, column.name] <- current.translation.row[column.name]
+						current.sheet[row.number, column.name] <- 
+							current.translation.row[column.name]
 						
-						if (latest.translation.row[column.name] != current.translation.row[column.name]) {
-							print(paste('> change ', column.name, ' in row ', row.number, ' \'', latest.translation.row[column.name], '\' to \'', current.translation.row[column.name], '\'', sep = ''))
+						if (latest.translation.row[column.name] 
+								!= current.translation.row[column.name]) {
+							# print(paste('> change ', column.name, ' in row ', row.number, ' \'', latest.translation.row[column.name], '\' to \'', current.translation.row[column.name], '\'', sep = ''))
 							# set changed cell value
-							current.sheet[row.number, paste(column.name, latest.column.suffix, sep = '')] <- latest.translation.row[column.name]
+							current.sheet[row.number, 
+														paste(column.name, 
+																	latest.column.suffix, 
+																	sep = '')] <- 
+								latest.translation.row[column.name]
 							
 							# store style for changed cell
-							cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- c(column.name, row.number + 1, style.df.style.type.cell)
+							cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- 
+								c(column.name, row.number + 1, style.df.style.type.cell)
 						}
 					}
 				} else {
@@ -197,7 +209,8 @@ PopulateSheets <- function(workbook,
 									cell.value, '\'', 
 									sep = '')
 					# store row position of error details in list
-					summary.row.list.sheet.details.error <- c(summary.row.list.sheet.details.error, summary.row.index + 1)
+					summary.row.list.sheet.details.error <- 
+						c(summary.row.list.sheet.details.error, summary.row.index + 1)
 					# fill text in column description
 					summary[summary.row.index, kSummaryColumnNameDescription] <- 
 						paste(current.nrow, ' current and ', latest.nrow, 
@@ -209,7 +222,8 @@ PopulateSheets <- function(workbook,
 									sep = '')
 					summary.row.index <- summary.row.index + 1
 					# store style for row error
-					cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- c(kColumnNameKey, row.number + 1, style.df.style.type.row)
+					cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- 
+						c(kColumnNameKey, row.number + 1, style.df.style.type.row)
 				}
 			}
 			
@@ -258,7 +272,7 @@ PopulateSheets <- function(workbook,
 													 row = row.number,
 													 col = which(colnames(current.sheet) == 
 													 							style.row[[style.df.column.name]]),
-													 cellstyle = kCellStyleTextChanged)
+													 cellstyle = kCellStyleCellChanged)
 						} else {
 							# cell style for complete row error
 							setCellStyle(workbook,
@@ -309,9 +323,11 @@ PopulateSheets <- function(workbook,
 																					sep = '')
 		}
 		print(paste('>',summary.column.status.text))
-		summary[summary.row.index, kSummaryColumnNameDescription] <- summary.column.status.text
-		summary[summary.row.index, kSummaryColumnNameStatus] <- paste(total.changes,
-																																	' total changes.')
+		summary[summary.row.index, kSummaryColumnNameDescription] <- 
+			summary.column.status.text
+		summary[summary.row.index, kSummaryColumnNameStatus] <- 
+			paste(total.changes,
+						' total changes.')
 		
 		# set header cell style for each sheet
 		setCellStyle(workbook,
@@ -321,11 +337,13 @@ PopulateSheets <- function(workbook,
 								 cellstyle = kCellStyleHeader)
 		summary.row.index <- summary.row.index + 1
 		if (overall.status == 'OK') {
-			summary.row.list.sheet.status.ok <- c(summary.row.list.sheet.status.ok,
-																						summary.sheet.name.index + 1)
+			summary.row.list.sheet.status.ok <-
+				c(summary.row.list.sheet.status.ok,
+					summary.sheet.name.index + 1)
 		} else {
-			summary.row.list.sheet.status.error <- c(summary.row.list.sheet.status.error,
-																							 summary.sheet.name.index + 1)
+			summary.row.list.sheet.status.error <- 
+				c(summary.row.list.sheet.status.error,
+					summary.sheet.name.index + 1)
 		}
 		summary[summary.sheet.name.index, kSummaryColumnNameStatus] <- overall.status
 		
@@ -333,19 +351,30 @@ PopulateSheets <- function(workbook,
 		# 1st column description width is 10 characters long
 		setColumnWidth(workbook, 
 									 sheet = sheet.name, 
-									 column = which(colnames(current.sheet) == kColumnNameDescription), 
+									 column = 
+									 	which(colnames(current.sheet) == kColumnNameDescription), 
 									 width = 10 * 256)
 		for (i in 2:length(colnames(current.sheet))) {
 			# auto-size for id and key column
 			# width 20 chars long for all other columns
-			columnWidth <- if (i == which(colnames(current.sheet) == kColumnNameId) 
-												 || i == which(colnames(current.sheet) == kColumnNameKey)) -1 else 20 * 256
-			setColumnWidth(workbook, sheet = sheet.name, column = i, width = columnWidth)
+			columnWidth <- 
+				if (i == which(colnames(current.sheet) == kColumnNameId) 
+						|| i == which(colnames(current.sheet) == kColumnNameKey)) {
+				  -1
+				} else {
+					20 * 256
+				}
+			setColumnWidth(workbook, 
+										 sheet = sheet.name, 
+										 column = i, 
+										 width = columnWidth)
 		}
 	} # end of processing sheets in for-loop 
 	
 	# first write data before updating style sheet
-	writeWorksheet(workbook, summary, sheet = kSummarySheetName)
+	writeWorksheet(workbook, 
+								 summary, 
+								 sheet = kSummarySheetName)
 	setCellStyle(workbook,
 							 sheet = kSummarySheetName,
 							 row = 1,
@@ -374,6 +403,7 @@ PopulateSheets <- function(workbook,
 		}
 	}
 	setColumnWidth(workbook, sheet = kSummarySheetName, column = 1:3, width = -1)
-	# sets the active sheet (even though the tab itself is not focused and highlighted...)
+	# sets the active sheet
+	# (though the tab itself is not focused and highlighted...)
 	setActiveSheet(workbook, sheet = kSummarySheetName)
 }

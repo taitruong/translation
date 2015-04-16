@@ -43,18 +43,22 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 		summary.df[start.row, kColumnNameOutput] <- main.file
 		start.row <- start.row + 1
 		
-		translation.handler <- function(result, langDf, mainDf) {
-			summary.df[start.row, kColumnNameDescription] <- 'Number of translations in lang file:'
-			summary.df[start.row, kColumnNameOutput] <- nrow(langDf)
-			start.row <- start.row + 1
-			
+		translation.handler <- function(result, mainDf, englishDf, languageDf) {
 			summary.df[start.row, kColumnNameDescription] <- 'Number of translations in main file:'
 			summary.df[start.row, kColumnNameOutput] <- nrow(mainDf)
 			start.row <- start.row + 1
 			
+			summary.df[start.row, kColumnNameDescription] <- 'Number of translations in english file:'
+			summary.df[start.row, kColumnNameOutput] <- nrow(englishDf)
+			start.row <- start.row + 1
+			
+			summary.df[start.row, kColumnNameDescription] <- 'Number of translations in language file:'
+			summary.df[start.row, kColumnNameOutput] <- nrow(languageDf)
+			start.row <- start.row + 1
+			
 			# check whether there are missing IDs
-			lang.df.not.in.main.df <- langDf[!langDf$ID %in% mainDf$ID,]
-			main.df.not.in.lang.df <- mainDf[!mainDf$ID %in% langDf$ID,]
+			lang.df.not.in.main.df <- languageDf[!languageDf$ID %in% mainDf$ID,]
+			main.df.not.in.lang.df <- mainDf[!mainDf$ID %in% languageDf$ID,]
 			
 			lang.row.number = nrow(lang.df.not.in.main.df)
 			main.row.number = nrow(main.df.not.in.lang.df)

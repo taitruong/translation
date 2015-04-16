@@ -6,10 +6,11 @@ require(XML)
 LoadTranslation <- function(main.file,
 														english.file,
 														language.file,
-														translation.handler = NULL # handler must accept these params:
-														# result data frame: containing the merged df of both translation files
-														# language data frame
+														translation.handler = NULL # handler params:
+														# result data frame: contains merged df all 3 files
 														# main data frame
+														# english data frame
+														# language data frame
 ) {
 	# Base class loading XML file with Translation tags
 	LoadXml <- function(filename, getAttributes) {
@@ -141,7 +142,7 @@ LoadTranslation <- function(main.file,
 	
 	# result handling
 	if (!is.null(translation.handler)) {
-		translation.handler(result, language.df, main.df)
+		translation.handler(result, main.df, english.df, language.df)
 	}
 	
 	result
