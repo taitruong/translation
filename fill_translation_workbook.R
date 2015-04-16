@@ -39,7 +39,8 @@ FillTranslationWorkbook <- function(excel.file,
 	PopulateSheets(workbook, 
 								 current.translation, 
 								 latest.translation, 
-								 sheet.names)
+								 sheet.names,
+								 start.at.row = 4) 	# skip first 3 rows since they contain no keys / only header infos
 	
 	# save result
 	result.filename <- paste('new_', excel.file)

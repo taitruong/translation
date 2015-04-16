@@ -2,7 +2,8 @@ PopulateSheets <- function(workbook,
 													 current.translation, 
 													 latest.translation, 
 													 sheet.names, 
-													 latest.column.suffix = 'Latest') {
+													 latest.column.suffix = 'Latest',
+													 start.at.row = 1) {
 	sheets <- readWorksheet(workbook, sheet.names)
 	
 	#################### initialisations, variables, constants, and function definitions ####################
@@ -69,9 +70,6 @@ PopulateSheets <- function(workbook,
 								 fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryErrorDetails, 
 												 color = XLC$COLOR.LIGHT_ORANGE)
-	
-	# skip first 3 rows since they contain no keys / only header infos
-	kRowIndexFirstKey <- 4
 	
 	# the columns to be populated and checked
 	kColumnNameOriginalText <- 'OriginalText'
@@ -152,12 +150,12 @@ PopulateSheets <- function(workbook,
 		
 		# is there any data?
 		row.numbers <- nrow(current.sheet)
-		if (row.numbers >= kRowIndexFirstKey) {
+		if (row.numbers >= start.at.row) {
 			print(paste('Populating sheet', sheet.name))
 			
 			# iterate through each row and start filling the sheet
 			# using our translation data frames
-			for (row.number in kRowIndexFirstKey:row.numbers) {
+			for (row.number in start.at.row:row.numbers) {
 				#print(c('Process row', row.number+1))
 				
 				# read key from sheet
@@ -244,7 +242,7 @@ PopulateSheets <- function(workbook,
 			# update sheet styles
 			# something has changed?
 			# highlight the rows with our defined cell styles above
-			for (row.number in kRowIndexFirstKey:row.numbers) {
+			for (row.number in start.at.row:row.numbers) {
 				# row has extra style?
 				# nb: there can be more rows for a row number since
 				# several columns can be changed
