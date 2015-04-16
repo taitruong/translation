@@ -25,7 +25,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 	setFillPattern(kCellStyleSummaryError, fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryError, color = XLC$COLOR.RED)
 
-	CreateLanguageSummarySheetHandler <- function(summary.sheet.name) {
+	LanguageSummarySheetHandler <- function(summary.sheet.name) {
 		kColumnNameDescription <- 'Description'
 		kColumnNameOutput <- 'Output'
 		kColumnLength <- 2
@@ -36,11 +36,14 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			Output = character(),
 			stringsAsFactors = FALSE
 		)
-		summary.df[start.row, kColumnNameDescription] <- 'Language file:'
-		summary.df[start.row, kColumnNameOutput] <- language.file
-		start.row <- start.row + 1
 		summary.df[start.row, kColumnNameDescription] <- 'Main file:'
 		summary.df[start.row, kColumnNameOutput] <- main.file
+		start.row <- start.row + 1
+		summary.df[start.row, kColumnNameDescription] <- 'English file:'
+		summary.df[start.row, kColumnNameOutput] <- english.file
+		start.row <- start.row + 1
+		summary.df[start.row, kColumnNameDescription] <- 'Language file:'
+		summary.df[start.row, kColumnNameOutput] <- language.file
 		start.row <- start.row + 1
 		
 		translation.handler <- function(result, mainDf, englishDf, languageDf) {
@@ -63,27 +66,31 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			start.row <- start.row + 1
 			
 			# check whether there are missing IDs
-			lang.df.not.in.main.df <- languageDf[!languageDf$ID %in% mainDf$ID,]
 			main.df.not.in.lang.df <- mainDf[!mainDf$ID %in% languageDf$ID,]
+			main.df.not.in.english.df <- mainDf[!mainDf$ID %in% englishDf$ID,]
+			lang.df.not.in.main.df <- languageDf[!languageDf$ID %in% mainDf$ID,]
+			english.df.not.in.main.df <- englishDf[!englishDf$ID %in% mainDf$ID,]
 			
-			lang.row.number = nrow(lang.df.not.in.main.df)
-			main.row.number = nrow(main.df.not.in.lang.df)
-			main.row.error <- if (lang.row.number > 0) {
+			# output ids from Main, missing in English file and store row number for cell style
+			main.to.english.row.number = nrow(main.df.not.in.english.df)
+			main.to.english.row.error <- if (main.to.english.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
-					paste(lang.row.number,
-								'IDs in Language file but not in Main file:')
+					paste(main.to.english.row.number,
+								'ID(s) in Main file but not in English file:')
 				summary.df[start.row, kColumnNameOutput] <- 
-					toString(lang.df.not.in.main.df$ID)
+					toString(main.df.not.in.english.df$ID)
 				start.row <- 
 					start.row + 1
 				start.row
 			} else {
 				-1
 			}
-			lang.row.error <- if (main.row.number > 0) {
-				summary.df[start.row, kColumnNameDescription] <-  
-					paste(main.row.number,
-								'IDs in Main file but not in Language file:')
+			# output ids from Main, missing in language file and store row number for cell style
+			main.to.lang.row.number = nrow(main.df.not.in.lang.df)
+			main.to.lang.row.error <- if (main.to.lang.row.number > 0) {
+				summary.df[start.row, kColumnNameDescription] <- 
+					paste(main.to.lang.row.number,
+								'ID(s) in Main file but not in Language file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(main.df.not.in.lang.df$ID)
 				start.row <- 
@@ -92,7 +99,37 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			} else {
 				-1
 			}
-			# check for escape errors e.g. for '<' it should be '&lt;' and not '&lt;lt;'
+			# output ids from English, missing in Main file and store row number for cell style
+			english.to.main.row.number = nrow(english.df.not.in.main.df)
+			english.to.main.row.error <- if (english.to.main.row.number > 0) {
+				summary.df[start.row, kColumnNameDescription] <- 
+					paste(english.to.main.row.number,
+								'ID(s) in English file but not in Main file:')
+				summary.df[start.row, kColumnNameOutput] <- 
+					toString(english.df.not.in.main.df$ID)
+				start.row <- 
+					start.row + 1
+				start.row
+			} else {
+				-1
+			}
+			# output ids from language, missing in Main file and store row number for cell style
+			lang.to.main.row.number = nrow(lang.df.not.in.main.df)
+			lang.to.main.row.error <- if (lang.to.main.row.number > 0) {
+				summary.df[start.row, kColumnNameDescription] <- 
+					paste(lang.to.main.row.number,
+								'ID(s) in Language file but not in Main file:')
+				summary.df[start.row, kColumnNameOutput] <- 
+					toString(lang.df.not.in.main.df$ID)
+				start.row <- 
+					start.row + 1
+				start.row
+			} else {
+				-1
+			}
+			# check in column 'OriginalText' for escape errors
+			# like for '<' it should be '&lt;' and not '&lt;lt;'
+			escape.row.error.list <- list()
 			original.text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
@@ -105,17 +142,17 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 						c(original.text.escape.list, resultRow$ID)
 				}
 			}
-			original.text.row.error <- if (length(original.text.escape.list) > 0) {
+			if (length(original.text.escape.list) > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(length(text.escape.list), 'escape errors in attribute OriginalText with IDs:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(original.text.escape.list)
 				start.row <- 
 					start.row + 1
-				start.row
-			} else {
-				-1
+				escape.row.error.list <- c(escape.row.error.list, start.row)
 			}
+			# check in column 'Text' for escape errors
+			# like for '<' it should be '&lt;' and not '&lt;lt;'
 			text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
@@ -127,16 +164,14 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 					text.escape.list <- c(text.escape.list, resultRow$ID)
 				}
 			}
-			text.row.error <- if (length(text.escape.list) > 0) {
+			if (length(text.escape.list) > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(length(text.escape.list), 
 								'escape errors in attribute Text with IDs:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(text.escape.list)
 				start.row <- start.row + 1
-				start.row
-			} else {
-				-1
+				escape.row.error.list <- c(escape.row.error.list, start.row)
 			}
 			
 			# create sheet only when it does not exists yet
@@ -158,38 +193,52 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 										 width = 30 * 256)
 			
 			# cell styles for the sheet
+			# header
 			setCellStyle(workbook,
 									 sheet = summary.sheet.name,
 									 row = 1,
 									 col = 1:kColumnLength,
 									 cellstyle = kCellStyleHeader)
-			if (main.row.error != -1) {
+			# missing IDs in English file
+			if (main.to.english.row.error != -1) {
 				setCellStyle(workbook,
 										 sheet = summary.sheet.name,
-										 row = main.row.error,
+										 row = main.to.english.row.error,
 										 col = 1:kColumnLength,
 										 cellstyle = kCellStyleSummaryError)
 			}
-			if (lang.row.error != -1) {
+			# missing IDs in Language file
+			if (main.to.lang.row.error != -1) {
 				setCellStyle(workbook,
 										 sheet = summary.sheet.name,
-										 row = lang.row.error,
+										 row = main.to.lang.row.error,
 										 col = 1:kColumnLength,
 										 cellstyle = kCellStyleSummaryError)
 			}
-			if (original.text.row.error != -1) {
+			# missing IDs in Main file
+			if (english.to.main.row.error != -1) {
 				setCellStyle(workbook,
 										 sheet = summary.sheet.name,
-										 row = original.text.row.error,
+										 row = english.to.main.row.error,
 										 col = 1:kColumnLength,
 										 cellstyle = kCellStyleSummaryError)
 			}
-			if (text.row.error != -1) {
+			# missing IDs in Main file
+			if (lang.to.main.row.error != -1) {
 				setCellStyle(workbook,
 										 sheet = summary.sheet.name,
-										 row = text.row.error,
+										 row = lang.to.main.row.error,
 										 col = 1:kColumnLength,
 										 cellstyle = kCellStyleSummaryError)
+			}
+			if (length(escape.row.error.list) > 0) {
+				for (row.error in escape.row.error.list) {
+					setCellStyle(workbook,
+											 sheet = summary.sheet.name,
+											 row = row.error,
+											 col = 1:kColumnLength,
+											 cellstyle = kCellStyleSummaryError)
+				}
 			}
 		}
 	}
@@ -197,5 +246,5 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 	LoadTranslation(main.file, 
 									english.file, 
 									language.file, 
-									CreateLanguageSummarySheetHandler(summary.sheet.name))
+									LanguageSummarySheetHandler(summary.sheet.name))
 }
