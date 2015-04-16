@@ -3,12 +3,14 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
 
 FillTranslationWorkbook <- function(excel.file, 
-																	current.main.file, 
+																	current.main.file,
+																	current.english.file,
 																	current.language.file,
 																	latest.main.file,
+																	latest.english.file,
 																	latest.language.file) {
-	source('create_summary_sheets.R')
-	source('populate_sheets.R')
+	debugSource('create_summary_sheets.R')
+	debugSource('populate_sheets.R')
 	
 	# read excel workbook and its sheets
 	print(paste('Reading workbook', excel.file))
@@ -19,10 +21,10 @@ FillTranslationWorkbook <- function(excel.file,
 	# do not use styles e.g. when calling writeWorksheet()
 	setStyleAction(workbook, XLC$STYLE_ACTION.NONE)
 	print('Reading current translation files')
-	current.translation <- LoadTranslationAndCreateSummarySheet(current.main.file, current.language.file, workbook, 'Summary Current Translation')
+	current.translation <- LoadTranslationAndCreateSummarySheet(current.main.file, current.english.file, current.language.file, workbook, 'Summary Current Translation')
 	
 	print('Reading latest translation files')
-	latest.translation <- LoadTranslationAndCreateSummarySheet(latest.main.file, latest.language.file, workbook, 'Summary Latest Translation')
+	latest.translation <- LoadTranslationAndCreateSummarySheet(latest.main.file, latest.english.file, latest.language.file, workbook, 'Summary Latest Translation')
 	
 	PopulateSheets(workbook, current.translation, latest.translation, sheet.names)
 	

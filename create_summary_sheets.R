@@ -4,8 +4,9 @@ require(XLConnect)
 # needed for cpos functions
 require(cwhmisc)
 
-LoadTranslationAndCreateSummarySheet <- function(language.file, 
-																								 main.file, 
+LoadTranslationAndCreateSummarySheet <- function(main.file, 
+																								 english.file,
+																								 language.file, 
 																								 workbook, 
 																								 summary.sheet.name) {
 	source('load_translation.R')
@@ -160,5 +161,5 @@ LoadTranslationAndCreateSummarySheet <- function(language.file,
 		}
 	}
 	# load and return data frame
-	LoadTranslation(language.file, main.file, CreateLanguageSummarySheetHandler(summary.sheet.name))
+	LoadTranslation(main.file, english.file, language.file, CreateLanguageSummarySheetHandler(summary.sheet.name))
 }
