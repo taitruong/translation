@@ -2,8 +2,9 @@ PopulateSheets <- function(workbook,
 													 current.translation, 
 													 latest.translation, 
 													 sheet.names, 
-													 latest.column.suffix = 'Latest',
+													 latest.column.suffix = Translation$Xls.Column.Suffix.Latest,
 													 start.at.row = 1) {
+	source('constants.R')
 	sheets <- readWorksheet(workbook, sheet.names)
 	
 	#################### initialisations, variables, constants, and function definitions ####################
@@ -71,30 +72,6 @@ PopulateSheets <- function(workbook,
 	setFillForegroundColor(kCellStyleSummaryErrorDetails, 
 												 color = XLC$COLOR.LIGHT_ORANGE)
 	
-	# the columns to be populated and checked
-	kColumnNameOriginalText <- 'OriginalText'
-	kColumnNameEnglishText <- 'EnglishText'
-	kColumnNameText <- 'Text'
-	kColumnNameId <- 'ID'
-	kColumnNameKey <- 'Key'
-	kColumnNameDescription <- 'Description'
-	current.columns.list <- list(kColumnNameOriginalText, 
-																kColumnNameEnglishText, 
-																kColumnNameText)
-	# generate 'changed' column for each populated column
-	latest.columns.list <- list()
-	for (populate.column in current.columns.list) {
-		latest.columns.list <- c(latest.columns.list, 
-															paste(populate.column, 
-																		latest.column.suffix, 
-																		sep = ''))
-	}
-	all.columns.list <- c(current.columns.list, 
-												latest.columns.list, 
-												kColumnNameId, 
-												kColumnNameKey, 
-												kColumnNameDescription)
-	
 	# summary sheet
 	kSummarySheetName <- 'Summary Sheets'
 	kSummaryColumnNameSheet <- 'Sheet'
@@ -119,12 +96,6 @@ PopulateSheets <- function(workbook,
 	summary.row.list.sheet.status.error <- list()
 	summary.row.list.sheet.details.error <- list()
 	
-	style.df.column.name <- 'column.name'
-	style.df.row.number <- 'row.number'
-	style.df.style.type <- 'style.type'
-	style.df.style.type.row <- 1
-	style.df.style.type.cell <- 2
-	
 	#################### END ####################
 	
 	# process for each sheet:
@@ -133,11 +104,10 @@ PopulateSheets <- function(workbook,
 	for (sheet.name in sheet.names) {
 		current.sheet <- readWorksheet(workbook, sheet = sheet.name)
 		
-		# initialize 1 list holding broken rows and 3 lists holding changed rows:
-		cell.style.rows.df <- data.frame('column.name' = character(), 
-																		 'row.number' = numeric(), 
-																		 'style.type' = numeric(), 
-																		 stringsAsFactors = F)
+		# initialize cell style list holding changed and error rows
+		cell.style.rows.df <- 
+			read.table(text=paste(Translation$Internal.Style.Columns.All, collapse=' '), 
+								 header=T)
 		
 		# summary of processing
 		overall.status <- 'OK'
@@ -159,7 +129,7 @@ PopulateSheets <- function(workbook,
 				#print(c('Process row', row.number+1))
 				
 				# read key from sheet
-				cell.value <- current.sheet[row.number, kColumnNameKey]
+				cell.value <- current.sheet[row.number, Translation$Xml.Attribute.Key]
 				
 				# skip if Keycell is NULL or NA
 				if (is.null(cell.value) || is.na(cell.value)) {
@@ -179,7 +149,7 @@ PopulateSheets <- function(workbook,
 					current.sheet[row.number, 'ID'] <- current.translation.row$ID
 					
 					# fill columns
-					for (column.name in current.columns.list) {
+					for (column.name in Translation$Xls.Column.Current.All) {
 						# set cell value
 						current.sheet[row.number, column.name] <- 
 							current.translation.row[column.name]
@@ -196,7 +166,7 @@ PopulateSheets <- function(workbook,
 							
 							# store style for changed cell
 							cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- 
-								c(column.name, row.number + 1, style.df.style.type.cell)
+								c(column.name, row.number + 1, Translation$Internal.Style.Df.Style.Type.Cell)
 						}
 					}
 				} else {
@@ -221,7 +191,9 @@ PopulateSheets <- function(workbook,
 					summary.row.index <- summary.row.index + 1
 					# store style for row error
 					cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- 
-						c(kColumnNameKey, row.number + 1, style.df.style.type.row)
+						# add any value (e.g. key) in first column and not an empty ''
+						# otherwise NA is added and an error occurs
+						c(Translation$Xml.Attribute.Key, row.number + 1, Translation$Internal.Style.Df.Style.Type.Row)
 				}
 			}
 			
@@ -237,7 +209,7 @@ PopulateSheets <- function(workbook,
 																			column.name = as.character(column.name),
 																			row.number = as.numeric(row.number),
 																			style.type = as.numeric(style.type))
-
+			
 			print('> update styles in sheet')
 			# update sheet styles
 			# something has changed?
@@ -249,10 +221,10 @@ PopulateSheets <- function(workbook,
 				# first check if there are rows (nrow) because
 				# calling which on empty causes an error
 				style.row.indices <- if (nrow(cell.style.rows.df) == 0) {
-					  integer(0)
-					} else {
-						which(row.number == cell.style.rows.df[style.df.row.number])
-					}
+					integer(0)
+				} else {
+					which(row.number == cell.style.rows.df[Translation$Internal.Style.Df.Row.Number])
+				}
 				if (length(style.row.indices) > 0) {
 					# cell style for complete row has changed
 					setCellStyle(workbook,
@@ -263,27 +235,27 @@ PopulateSheets <- function(workbook,
 					for (style.row.index in style.row.indices) {
 						# get row style
 						style.row <- cell.style.rows.df[style.row.index,]
-						if (style.row[style.df.style.type] == style.df.style.type.cell) {
+						if (style.row[Translation$Internal.Style.Df.Style.Type] == Translation$Internal.Style.Df.Style.Type.Cell) {
 							# cell style for cell
 							setCellStyle(workbook, 
 													 sheet = sheet.name, 
 													 row = row.number,
 													 col = which(colnames(current.sheet) == 
-													 							style.row[[style.df.column.name]]),
+													 							style.row[[Translation$Internal.Style.Df.Column.Name]]),
 													 cellstyle = kCellStyleCellChanged)
 						} else {
 							# cell style for complete row error
 							setCellStyle(workbook,
 													 sheet = sheet.name,
-													 row = style.row[[style.df.row.number]],
+													 row = style.row[[Translation$Internal.Style.Df.Row.Number]],
 													 col = 1:length(colnames(current.sheet)),
 													 cellstyle = kCellStyleRowError)
 							# cell style for error in Key column
 							setCellStyle(workbook,
 													 sheet = sheet.name,
-													 row = style.row[[style.df.row.number]],
+													 row = style.row[[Translation$Internal.Style.Df.Row.Number]],
 													 col = which(colnames(current.sheet) == 
-													 							style.row[[style.df.column.name]]),
+													 							style.row[[Translation$Internal.Style.Df.Column.Name]]),
 													 cellstyle = kCellStyleCellError)
 							#stop for loop since complete row is marked
 							break;
@@ -305,14 +277,14 @@ PopulateSheets <- function(workbook,
 		# write output for number of sheet changes in each column
 		total.changes <- 0
 		summary.column.status.text <- ''
-		for (column.name in current.columns.list) {
+		for (column.name in Translation$Xls.Column.Current.All) {
 			# first check if there are rows (nrow) because
 			# calling which on empty causes an error
 			changes <- if (nrow(cell.style.rows.df) == 0) {
-				  0
-				} else {
-					length(which(cell.style.rows.df[style.df.column.name] == column.name))
-				}
+				0
+			} else {
+				length(which(cell.style.rows.df[Translation$Internal.Style.Df.Column.Name] == column.name))
+			}
 			total.changes <- total.changes + changes
 			summary.column.status.text <- paste(summary.column.status.text,
 																					' ', changes,
@@ -350,15 +322,15 @@ PopulateSheets <- function(workbook,
 		setColumnWidth(workbook, 
 									 sheet = sheet.name, 
 									 column = 
-									 	which(colnames(current.sheet) == kColumnNameDescription), 
+									 	which(colnames(current.sheet) == Translation$Xls.Column.Other.Description), 
 									 width = 10 * 256)
 		for (i in 2:length(colnames(current.sheet))) {
 			# auto-size for id and key column
 			# width 20 chars long for all other columns
 			columnWidth <- 
-				if (i == which(colnames(current.sheet) == kColumnNameId) 
-						|| i == which(colnames(current.sheet) == kColumnNameKey)) {
-				  -1
+				if (i == which(colnames(current.sheet) == Translation$Xml.Attribute.Id) 
+						|| i == which(colnames(current.sheet) == Translation$Xml.Attribute.Key)) {
+					-1
 				} else {
 					20 * 256
 				}

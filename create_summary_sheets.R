@@ -10,6 +10,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 																								 workbook, 
 																								 summary.sheet.name) {
 	source('load_translation.R')
+	source('constants.R')
 
 	###### initialisations, variables, constants, and function definitions ######
 	
@@ -133,18 +134,21 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			original.text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
-				if (!is.na(cpos(resultRow$OriginalText, 'amp;amp;')) 
-						|| !is.na(cpos(resultRow$OriginalText, 'lt;lt;'))
-						|| !is.na(cpos(resultRow$OriginalText, 'gt;gt;'))
-						|| !is.na(cpos(resultRow$OriginalText, 'apos;apos;'))
-						|| !is.na(cpos(resultRow$OriginalText, 'quot;quot;'))) {
+				if (!is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'amp;amp;')) 
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'lt;lt;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'gt;gt;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'apos;apos;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'quot;quot;'))) {
 					original.text.escape.list <- 
 						c(original.text.escape.list, resultRow$ID)
 				}
 			}
 			if (length(original.text.escape.list) > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
-					paste(length(text.escape.list), 'escape errors in attribute OriginalText with IDs:')
+					paste(length(text.escape.list),
+								'escape errors in attribute', 
+								Translation$Xml.Attribute.Original.Text, 
+								'with IDs:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(original.text.escape.list)
 				start.row <- 
@@ -156,18 +160,20 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
-				if (!is.na(cpos(resultRow$Text, 'amp;amp;')) 
-						|| !is.na(cpos(resultRow$Text, 'lt;lt;'))
-						|| !is.na(cpos(resultRow$Text, 'gt;gt;'))
-						|| !is.na(cpos(resultRow$Text, 'apos;apos;'))
-						|| !is.na(cpos(resultRow$Text, 'quot;quot;'))) {
+				if (!is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'amp;amp;')) 
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'lt;lt;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'gt;gt;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'apos;apos;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'quot;quot;'))) {
 					text.escape.list <- c(text.escape.list, resultRow$ID)
 				}
 			}
 			if (length(text.escape.list) > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
-					paste(length(text.escape.list), 
-								'escape errors in attribute Text with IDs:')
+					paste(length(text.escape.list),
+								'escape errors in attribute', 
+								Translation$Xml.Attribute.Text,
+								'with IDs:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(text.escape.list)
 				start.row <- start.row + 1
