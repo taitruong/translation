@@ -172,11 +172,12 @@ LoadTranslation <- function(main.file,
 	print('Checking whether IDs in lang file exist in main file')
 	
 	# checking whether all IDs from lang file does also exist in main file
-	print('Result: merging main and english data frames')
+	print('>Result: merging main and english data frames')
 	result <- merge(main.df, english.df, by = 'ID')
-	print('Merging result and language data frames')
+	print('>Result: merging result with language data frame')
 	result <- merge(result, language.df, by = 'ID')
-	
+
+	print('Pass result to translation handler (summary creation)')
 	# result handling
 	if (!is.null(translation.handler)) {
 		translation.handler(result, main.df, english.df, language.df)

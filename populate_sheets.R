@@ -5,6 +5,7 @@ PopulateSheets <- function(workbook,
 													 latest.column.suffix = Translation$Xls.Column.Suffix.Latest,
 													 start.at.row = 1) {
 	source('constants.R')
+	source('sort_sheet_columns.R')
 	sheets <- readWorksheet(workbook, sheet.names)
 	
 	#################### initialisations, variables, constants, and function definitions ####################
@@ -103,7 +104,7 @@ PopulateSheets <- function(workbook,
 	# based on the key read the translation data frames and populate cells
 	for (sheet.name in sheet.names) {
 		current.sheet <- readWorksheet(workbook, sheet = sheet.name)
-		current.sheet <- Re.Order.Columns(current.sheet)
+		current.sheet <- Sort.Sheet.Columns(current.sheet)
 		
 		# initialize cell style list holding changed and error rows
 		cell.style.rows.df <- 
@@ -150,7 +151,7 @@ PopulateSheets <- function(workbook,
 					current.sheet[row.number, 'ID'] <- current.translation.row$ID
 					
 					# fill columns
-					for (column.name in Translation$Xls.Column.Current.All) {
+					for (column.name in Translation$Xls.Text.Columns) {
 						# set cell value
 						current.sheet[row.number, column.name] <- 
 							current.translation.row[column.name]
@@ -279,7 +280,7 @@ PopulateSheets <- function(workbook,
 		# write output for number of sheet changes in each column
 		total.changes <- 0
 		summary.column.status.text <- ''
-		for (column.name in Translation$Xls.Column.Current.All) {
+		for (column.name in Translation$Xls.Text.Columns) {
 			# first check if there are rows (nrow) because
 			# calling which on empty causes an error
 			changes <- if (nrow(cell.style.rows.df) == 0) {
@@ -378,22 +379,4 @@ PopulateSheets <- function(workbook,
 	# sets the active sheet
 	# (though the tab itself is not focused and highlighted...)
 	setActiveSheet(workbook, sheet = kSummarySheetName)
-}
-
-Re.Order.Columns <- function(translation.df) {
-	column.names <- colnames(translation.df)
-	unknown.columns <- setdiff(column.names,Translation$Xls.Column.All)
-	if (nrow(translation.df) > 0) {
-		for (column in Translation$Xls.Column.All) {
-			# first add missing columns
-			if (!column %in% column.names) {
-				translation.df[column] <- NA
-			}
-		}
-		# now re-order columns
-		translation.df[as.character(c(Translation$Xls.Column.All, unknown.columns))]
-	}	else {
-		column.names <- colnames(translation.df)
-		read.table(text=as.character(c(Translation$Xls.Column.All, unknown.columns)), header=T)
-	}
 }

@@ -26,7 +26,7 @@ FillTranslationWorkbook <- function(excel.file,
 																				 current.english.file, 
 																				 current.language.file, 
 																				 workbook, 
-																				 'Summary Current Translation')
+																				 Translation$Xls.Sheet.Summary.Current)
 	
 	print('Reading latest translation files')
 	latest.translation <- 
@@ -34,7 +34,7 @@ FillTranslationWorkbook <- function(excel.file,
 																				 latest.english.file, 
 																				 latest.language.file, 
 																				 workbook, 
-																				 'Summary Latest Translation')
+																				 Translation$Xls.Sheet.Summary.Latest)
 	
 	PopulateSheets(workbook, 
 								 current.translation, 

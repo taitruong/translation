@@ -47,7 +47,8 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 		summary.df[start.row, kColumnNameOutput] <- language.file
 		start.row <- start.row + 1
 		
-		translation.handler <- function(result, mainDf, englishDf, languageDf) {
+		# return function to be used in LoadTranslation function
+		function(result, mainDf, englishDf, languageDf) {
 			summary.df[start.row, kColumnNameDescription] <- 
 				'Number of translations in main file:'
 			summary.df[start.row, kColumnNameOutput] <- 
