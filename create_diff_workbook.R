@@ -93,13 +93,17 @@ CreateDiffWorkbook <- function(current.main.file,
 	}
 
 	# remove column description - we don't need it
+	print(paste('Removing column', Translation$Xls.Column.Other.Description))
 	diff.sheet[Translation$Xls.Column.Other.Description] <- NULL
+
 	# first write the sheet back into the workbook
 	# before doing further changes e.g. cell styles
+	print('Write differences in worksheet')
 	writeWorksheet(workbook, diff.sheet, sheet = Translation$Xls.Diff.Sheet.Name)
-	
-	# header cell style
+
+	# cell styles
 	# set header cell style
+	print('Set cell styles')
 	setCellStyle(workbook,
 							 sheet = Translation$Xls.Diff.Sheet.Name,
 							 row = 1,
@@ -115,6 +119,7 @@ CreateDiffWorkbook <- function(current.main.file,
 	}
 	
 	# set column widths
+	print('Set column widths')
 	for (column.name in colnames(diff.sheet)) {
 		# auto-size for description, id, and key
 		if (column.name %in% Translation$Xls.Column.Other.All) {
@@ -136,6 +141,7 @@ CreateDiffWorkbook <- function(current.main.file,
 	
 	# sets the active sheet
 	# (though the tab itself is not focused and highlighted...)
+	print(paste(Translation$Xls.Sheet.Summary.Current, ': make active sheet'))
 	setActiveSheet(workbook, sheet = Translation$Xls.Sheet.Summary.Current)
 	
 	print(paste('Saving workbook to', outputFilename))
