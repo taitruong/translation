@@ -80,7 +80,7 @@ CreateDiffWorkbook <- function(current.main.file,
 						current.latest[row, Translation$Xml.Attribute.Key]
 					added <- TRUE
 				}
-
+				
 				diff.sheet[diff.row, column.current] <- 
 					current.latest[row, column.current]
 				diff.sheet[diff.row, column.latest] <- 
@@ -121,8 +121,15 @@ CreateDiffWorkbook <- function(current.main.file,
 	# set column widths
 	print('Set column widths')
 	for (column.name in colnames(diff.sheet)) {
-		# auto-size for description, id, and key
-		if (column.name %in% Translation$Xls.Column.Other.All) {
+		if (column.name == Translation$Xls.Column.Other.Key) {
+			# set key column widths 30 chars long
+			setColumnWidth(workbook, 
+										 sheet = Translation$Xls.Diff.Sheet.Name, 
+										 column = 
+										 	which(colnames(diff.sheet) == column.name), 
+										 width = 30 * 256)
+		} else if (column.name %in% Translation$Xls.Column.Other.All) {
+			# auto-size for description, id, and key
 			setColumnWidth(workbook, 
 										 sheet = Translation$Xls.Diff.Sheet.Name, 
 										 column = 
