@@ -110,7 +110,7 @@ CreateDiffWorkbook <- function(current.main.file,
 							 col = 1:length(colnames(diff.sheet)),
 							 cellstyle = kCellStyleHeader)
 	# wrap text cell style for all text columns below haea
-	for (diff.row in 1: (nrow(diff.sheet) - 1)) {
+	for (diff.row in 1: (nrow(diff.sheet))) {
 		setCellStyle(workbook,
 								 sheet = Translation$Xls.Diff.Sheet.Name,
 								 row = diff.row + 1,
