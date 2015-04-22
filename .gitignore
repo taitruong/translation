@@ -16,3 +16,4 @@ vignettes/*.pdf
 *.csv
 *.xl*
 *.xml
+.Rproj.user
