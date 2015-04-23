@@ -8,7 +8,7 @@ CreateDiffWorkbook <- function(current.file.dir,
 															 module.file.prefix = 'recruitingappTranslation', # e.g. 'recruiting' or 'employee'
 															 main.file.suffix = 'Main',
 															 english.file.suffix = 'eng', # english translation file used as second main file
-															 outputFilename = NULL) {
+															 outputFilename = NULL) { # if NULL then it is constructed using module.file.prefixC
 	source('constants.R')
 	source('sort_sheet_columns.R')
 	source('create_summary_sheets.R')
