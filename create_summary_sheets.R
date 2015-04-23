@@ -146,7 +146,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			}
 			if (length(original.text.escape.list) > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
-					paste(length(text.escape.list),
+					paste(length(original.text.escape.list),
 								'escape errors in attribute', 
 								Translation$Xml.Attribute.Original.Text, 
 								'with IDs:')
