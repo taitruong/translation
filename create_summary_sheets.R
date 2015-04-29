@@ -4,13 +4,20 @@ require(XLConnect)
 # needed for cpos functions
 require(cwhmisc)
 
-LoadTranslationAndCreateSummarySheet <- function(main.file, 
-																								 english.file,
-																								 language.file, 
+LoadTranslationAndCreateSummarySheet <- function(file.dir, 
+																								 language.file.suffix, # e.g. 'chi' for chinese translation file
+																								 module.file.prefix = 'recruitingappTranslation', # e.g. 'recruiting' or 'employee'
+																								 main.file.suffix = 'Main',
+																								 english.file.suffix = 'eng', 
 																								 workbook, 
 																								 summary.sheet.name) {
 	source('load_translation.R')
 	source('constants.R')
+	
+	main.file <- paste(file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
+	english.file <- paste(file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
+	language.file <- paste(file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
+	
 
 	###### initialisations, variables, constants, and function definitions ######
 	
@@ -37,13 +44,13 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			Output = character(),
 			stringsAsFactors = FALSE
 		)
-		summary.df[start.row, kColumnNameDescription] <- 'Main file:'
+		summary.df[start.row, kColumnNameDescription] <- paste(main.file.suffix, 'file:')
 		summary.df[start.row, kColumnNameOutput] <- main.file
 		start.row <- start.row + 1
-		summary.df[start.row, kColumnNameDescription] <- 'English file:'
+		summary.df[start.row, kColumnNameDescription] <- paste(english.file.suffix, 'file:')
 		summary.df[start.row, kColumnNameOutput] <- english.file
 		start.row <- start.row + 1
-		summary.df[start.row, kColumnNameDescription] <- 'Language file:'
+		summary.df[start.row, kColumnNameDescription] <- paste(language.file.suffix, 'file:')
 		summary.df[start.row, kColumnNameOutput] <- language.file
 		start.row <- start.row + 1
 		
@@ -78,7 +85,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			main.to.english.row.error <- if (main.to.english.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(main.to.english.row.number,
-								'ID(s) in Main file but not in English file:')
+								'NEW id(s) in', main.file.suffix, 'file but not in', english.file.suffix, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(main.df.not.in.english.df$ID)
 				start.row <- 
@@ -92,7 +99,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			main.to.lang.row.error <- if (main.to.lang.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(main.to.lang.row.number,
-								'ID(s) in Main file but not in Language file:')
+								'NEW id(s) in', main.file.suffix, 'file but not in', language.file.suffix, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(main.df.not.in.lang.df$ID)
 				start.row <- 
@@ -106,7 +113,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			english.to.main.row.error <- if (english.to.main.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(english.to.main.row.number,
-								'ID(s) in English file but not in Main file:')
+								'OLD id(s) in', english.file.suffix, 'file but not in', main.file.suffix, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(english.df.not.in.main.df$ID)
 				start.row <- 
@@ -120,7 +127,7 @@ LoadTranslationAndCreateSummarySheet <- function(main.file,
 			lang.to.main.row.error <- if (lang.to.main.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(lang.to.main.row.number,
-								'ID(s) in Language file but not in Main file:')
+								'OLD id(s) in', language.file.suffix, 'file but not in', main.file.suffix, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(lang.df.not.in.main.df$ID)
 				start.row <- 

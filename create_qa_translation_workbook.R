@@ -30,17 +30,21 @@ CreateQaTranslationWorkbook <- function(excel.file,
 	setStyleAction(workbook, XLC$STYLE_ACTION.NONE)
 	print('Reading current translation files')
 	current.translation <- 
-		LoadTranslationAndCreateSummarySheet(current.main.file, 
-																				 current.english.file, 
-																				 current.language.file, 
+		LoadTranslationAndCreateSummarySheet(current.file.dir, 
+																				 language.file.suffix, 
+																				 module.file.prefix, 
+																				 main.file.suffix,
+																				 english.file.suffix,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Current)
 	
 	print('Reading latest translation files')
 	latest.translation <- 
-		LoadTranslationAndCreateSummarySheet(latest.main.file, 
-																				 latest.english.file, 
-																				 latest.language.file, 
+		LoadTranslationAndCreateSummarySheet(latest.file.dir, 
+																				 language.file.suffix, 
+																				 module.file.prefix, 
+																				 main.file.suffix,
+																				 english.file.suffix,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Latest)
 	

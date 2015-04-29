@@ -42,18 +42,22 @@ CreateDiffWorkbook <- function(current.file.dir,
 	# read current translation files into data frame
 	print('Reading current translation files')
 	current.translation <- 
-		LoadTranslationAndCreateSummarySheet(current.main.file, 
-																				 current.english.file, 
-																				 current.language.file, 
+		LoadTranslationAndCreateSummarySheet(current.file.dir, 
+																				 language.file.suffix, 
+																				 module.file.prefix, 
+																				 main.file.suffix,
+																				 english.file.suffix,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Current)
 	
 	# read latest translation files into data frame
 	print('Reading latest translation files')
 	latest.translation <- 
-		LoadTranslationAndCreateSummarySheet(latest.main.file, 
-																				 latest.english.file, 
-																				 latest.language.file, 
+		LoadTranslationAndCreateSummarySheet(latest.file.dir, 
+																				 language.file.suffix, 
+																				 module.file.prefix, 
+																				 main.file.suffix,
+																				 english.file.suffix,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Latest)
 	
@@ -88,10 +92,6 @@ CreateDiffWorkbook <- function(current.file.dir,
 			# latest column for this current column
 			column.latest <- paste(column.current, Translation$Xls.Column.Suffix.Latest, sep='')
 			# diff check
-			if (current.latest[row, Translation$Xml.Attribute.Id] == 30188) {
-				print('>>>>>>>>>>>>>>')
-				print(current.latest[row, Translation$Xml.Attribute.Id])
-			}
 			if (
 				  # current column empty and latest column not empty?
 				  (is.na(current.latest[row, column.current]) && !is.na(current.latest[row, column.latest]))
