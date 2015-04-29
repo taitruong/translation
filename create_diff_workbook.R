@@ -13,6 +13,7 @@ CreateDiffWorkbook <- function(current.file.dir,
 	source('sort_sheet_columns.R')
 	source('create_summary_sheets.R')
 	
+	# concatenate file names based on dir, prefix, and suffix
 	current.main.file <- paste(current.file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
 	current.english.file <- paste(current.file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
 	current.language.file <- paste(current.file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
@@ -20,9 +21,10 @@ CreateDiffWorkbook <- function(current.file.dir,
 	latest.english.file <- paste(latest.file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
 	latest.language.file <- paste(latest.file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
 	
+	# read template workbook
 	print(paste('Loading template workbook', Translation$Xls.Diff.Template.File))
 	workbook <- loadWorkbook(Translation$Xls.Diff.Template.File)
-	# do not use styles e.g. when calling writeWorksheet()
+	## do not use styles e.g. when calling writeWorksheet()
 	setStyleAction(workbook, XLC$STYLE_ACTION.NONE)
 	
 	# define cell styles
@@ -37,6 +39,7 @@ CreateDiffWorkbook <- function(current.file.dir,
 	setWrapText(kCellStyleWrap, 
 							wrap = T)
 	
+	# read current translation files into data frame
 	print('Reading current translation files')
 	current.translation <- 
 		LoadTranslationAndCreateSummarySheet(current.main.file, 
@@ -45,6 +48,7 @@ CreateDiffWorkbook <- function(current.file.dir,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Current)
 	
+	# read latest translation files into data frame
 	print('Reading latest translation files')
 	latest.translation <- 
 		LoadTranslationAndCreateSummarySheet(latest.main.file, 
@@ -52,36 +56,49 @@ CreateDiffWorkbook <- function(current.file.dir,
 																				 latest.language.file, 
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Latest)
-	# 
-	print(paste('Create diff sheet:', Translation$Xls.Diff.Sheet.Name))
 	
-	# create sheet in case it does not exist yet
+	# start creating diff sheet of current and latest translation
+	print(paste('Create diff sheet:', Translation$Xls.Diff.Sheet.Name))
+	## create sheet in case it does not exist yet
 	if (!Translation$Xls.Diff.Sheet.Name %in% getSheets(workbook)) {
 		createSheet(workbook, Translation$Xls.Diff.Sheet.Name)
 	}
+	## get sheet from workbook
 	diff.sheet <- readWorksheet(workbook, Translation$Xls.Diff.Sheet.Name)
+	## sort columns
 	diff.sheet <- SortSheetColumns(diff.sheet)
 	
+	# create data frame 'current.latest' by merging current and latest data frame based on ID
 	print('Checking differences between current and latest translations')
-	# merge by id
-	# here we don't need keys, but we keep key in one df for output
+	## merge by id
+	## here we don't need keys, but we keep key in one df for output
 	latest.translation[Translation$Xml.Attribute.Key] <- NULL
 	current.latest <- merge(current.translation,
 													latest.translation,
 													by = Translation$Xml.Attribute.Id,
 													suffix = c('', Translation$Xls.Column.Suffix.Latest))
+	
+	# check differences between current and latest translations
 	diff.row <- 1
 	for (row in 1:nrow(current.latest)) {
 		added <- FALSE
+		# process all current text columns ('OriginalText', 'EnglishText', and 'Text')
+		# in diff data frame
 		for (column.current in Translation$Xls.Text.Columns) {
+			# latest column for this current column
 			column.latest <- paste(column.current, Translation$Xls.Column.Suffix.Latest, sep='')
 			# diff check
-			if ((is.na(current.latest[row, column.current]) && !is.na(current.latest[row, column.latest]))
+			if (current.latest[row, Translation$Xml.Attribute.Id] == 30188) {
+				print('>>>>>>>>>>>>>>')
+				print(current.latest[row, Translation$Xml.Attribute.Id])
+			}
+			if (
+				  # current column empty and latest column not empty?
+				  (is.na(current.latest[row, column.current]) && !is.na(current.latest[row, column.latest]))
+				  # current column not empty and latest column empty?
 					|| (!is.na(current.latest[row, column.current]) && is.na(current.latest[row, column.latest]))
+					# current column value != latest column value?
 					|| current.latest[row, column.current] != current.latest[row, column.latest]) {
-				if (diff.row == 377) {
-					print(diff.row)
-				}
 				# add id and key
 				if (!added) {
 					diff.sheet[diff.row, Translation$Xls.Column.Other.Id] <- 
