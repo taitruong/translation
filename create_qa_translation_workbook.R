@@ -3,14 +3,22 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
 
 CreateQaTranslationWorkbook <- function(excel.file, 
-																	current.main.file,
-																	current.english.file,
-																	current.language.file,
-																	latest.main.file,
-																	latest.english.file,
-																	latest.language.file) {
+																				current.file.dir,
+																				latest.file.dir,
+																				language.file.suffix, # e.g. 'chi' for chinese translation file
+																				module.file.prefix = 'recruitingappTranslation', # e.g. 'recruiting' or 'employee'
+																				main.file.suffix = 'Main',
+																				english.file.suffix = 'eng' # english translation file used as second main file
+																				) {
 	source('create_summary_sheets.R')
 	source('populate_sheets.R')
+
+	current.main.file <- paste(current.file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
+	current.english.file <- paste(current.file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
+	current.language.file <- paste(current.file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
+	latest.main.file <- paste(latest.file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
+	latest.english.file <- paste(latest.file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
+	latest.language.file <- paste(latest.file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
 	
 	# read excel workbook and its sheets
 	print(paste('Reading workbook', excel.file))
