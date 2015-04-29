@@ -2,7 +2,7 @@
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk1.7.0_75\\jre')
 require(XLConnect)
 
-FillTranslationWorkbook <- function(excel.file, 
+CreateQaTranslationWorkbook <- function(excel.file, 
 																	current.main.file,
 																	current.english.file,
 																	current.language.file,

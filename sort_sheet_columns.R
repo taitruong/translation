@@ -1,4 +1,4 @@
-Sort.Sheet.Columns <- function(translation.df) {
+SortSheetColumns <- function(translation.df) {
 	column.names <- colnames(translation.df)
 	unknown.columns <- setdiff(column.names,Translation$Xls.Column.All)
 	if (nrow(translation.df) > 0) {

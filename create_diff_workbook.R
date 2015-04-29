@@ -60,7 +60,7 @@ CreateDiffWorkbook <- function(current.file.dir,
 		createSheet(workbook, Translation$Xls.Diff.Sheet.Name)
 	}
 	diff.sheet <- readWorksheet(workbook, Translation$Xls.Diff.Sheet.Name)
-	diff.sheet <- Sort.Sheet.Columns(diff.sheet)
+	diff.sheet <- SortSheetColumns(diff.sheet)
 	
 	print('Checking differences between current and latest translations')
 	# merge by id

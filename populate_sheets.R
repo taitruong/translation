@@ -104,7 +104,7 @@ PopulateSheets <- function(workbook,
 	# based on the key read the translation data frames and populate cells
 	for (sheet.name in sheet.names) {
 		current.sheet <- readWorksheet(workbook, sheet = sheet.name)
-		current.sheet <- Sort.Sheet.Columns(current.sheet)
+		current.sheet <- SortSheetColumns(current.sheet)
 		
 		# initialize cell style list holding changed and error rows
 		cell.style.rows.df <- 
