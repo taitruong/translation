@@ -214,7 +214,7 @@ PopulateSheets <- function(workbook,
 			# update sheet styles
 			# something has changed?
 			# highlight the rows with our defined cell styles above
-			for (row.number in start.at.row:row.numbers) {
+			for (row.number in start.at.row: (row.numbers + 1)) {
 				# row has extra style?
 				# nb: there can be more rows for a row number since
 				# several columns can be changed
