@@ -152,19 +152,19 @@ PopulateSheets <- function(workbook,
 					
 					# fill columns
 					for (column.name in Translation$Xls.Text.Columns) {
-						# set cell value
+						# set cell value for current translation
 						current.sheet[row.number, column.name] <- 
 							current.translation.row[column.name]
+						# set cell value for latest translation
+						current.sheet[row.number, 
+													paste(column.name, 
+																latest.column.suffix, 
+																sep = '')] <- 
+							latest.translation.row[column.name]
 						
 						if (latest.translation.row[column.name] 
 								!= current.translation.row[column.name]) {
 							# print(paste('> change ', column.name, ' in row ', row.number, ' \'', latest.translation.row[column.name], '\' to \'', current.translation.row[column.name], '\'', sep = ''))
-							# set changed cell value
-							current.sheet[row.number, 
-														paste(column.name, 
-																	latest.column.suffix, 
-																	sep = '')] <- 
-								latest.translation.row[column.name]
 							
 							# store style for changed cell
 							cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- 
@@ -236,12 +236,22 @@ PopulateSheets <- function(workbook,
 						# get row style
 						style.row <- cell.style.rows.df[style.row.index,]
 						if (style.row[Translation$Internal.Style.Df.Style.Type] == Translation$Internal.Style.Df.Style.Type.Cell) {
-							# cell style for cell
+							# cell style for cell for current column
 							setCellStyle(workbook, 
 													 sheet = sheet.name, 
 													 row = row.number,
 													 col = which(colnames(current.sheet) == 
 													 							style.row[[Translation$Internal.Style.Df.Column.Name]]),
+													 cellstyle = kCellStyleCellChanged)
+							# cell style for cell for latest column
+							paste(style.row[[Translation$Internal.Style.Df.Column.Name]], latest.column.suffix, sep='')
+							setCellStyle(workbook, 
+													 sheet = sheet.name, 
+													 row = row.number,
+													 col = which(colnames(current.sheet)
+													 						== paste(style.row[[Translation$Internal.Style.Df.Column.Name]],
+													 										 latest.column.suffix,
+													 										 sep='')),
 													 cellstyle = kCellStyleCellChanged)
 						} else {
 							# cell style for complete row error
