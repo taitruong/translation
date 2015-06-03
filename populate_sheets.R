@@ -60,6 +60,18 @@ PopulateSheets <- function(workbook,
 								 fill = XLC$FILL.SOLID_FOREGROUND)
 	setFillForegroundColor(kCellStyleSummaryOk, 
 												 color = XLC$COLOR.LIGHT_GREEN)
+	### cell style for row CHANGED (Old/New keys)
+	kCellStyleSummaryChanged <- createCellStyle(workbook)
+	setFillPattern(kCellStyleSummaryChanged, 
+								 fill = XLC$FILL.SOLID_FOREGROUND)
+	setFillForegroundColor(kCellStyleSummaryChanged, 
+												 color = XLC$COLOR.YELLOW)
+	### cell style for row details CHANGED (Old/New keys)
+	kCellStyleSummaryChangedDetails <- createCellStyle(workbook)
+	setFillPattern(kCellStyleSummaryChangedDetails, 
+								 fill = XLC$FILL.SOLID_FOREGROUND)
+	setFillForegroundColor(kCellStyleSummaryChangedDetails, 
+												 color = XLC$COLOR.LIGHT_YELLOW)
 	### cell style for row ERROR
 	kCellStyleSummaryError <- createCellStyle(workbook)
 	setFillPattern(kCellStyleSummaryError, 
@@ -94,6 +106,8 @@ PopulateSheets <- function(workbook,
 	
 	# the lists containing row indices with status ok or error
 	summary.row.list.sheet.status.ok <- list()
+	summary.row.list.sheet.status.oldnew <- list()
+	summary.row.list.sheet.details.oldnew <- list()
 	summary.row.list.sheet.status.error <- list()
 	summary.row.list.sheet.details.error <- list()
 	
@@ -112,7 +126,7 @@ PopulateSheets <- function(workbook,
 								 header=T)
 		
 		# summary of processing
-		overall.status <- 'OK'
+		overall.status <- Translation$Xls.Sheet.Summary.StatusCode.Ok
 		# write sheet name in summary column 'Sheet'
 		summary[summary.row.index, kSummaryColumnNameSheet] <- sheet.name
 		# row position of sheet name in summary
@@ -146,24 +160,58 @@ PopulateSheets <- function(workbook,
 				# there must be exactly one translation
 				current.nrow <- nrow(current.translation.row)
 				latest.nrow <- nrow(latest.translation.row)
-				if (current.nrow == 1 && latest.nrow == 1) {
+				if (current.nrow == 1 || latest.nrow == 1) {
 					# set ID in sheet
-					current.sheet[row.number, 'ID'] <- current.translation.row$ID
+					current.sheet[row.number, 'ID'] <- if (current.nrow == 1) {
+						current.translation.row$ID
+					} else {
+						latest.translation.row$ID
+					}
 					
 					# fill columns
 					for (column.name in Translation$Xls.Text.Columns) {
 						# set cell value for current translation
 						current.sheet[row.number, column.name] <- 
-							current.translation.row[column.name]
+							if (current.nrow == 1) {
+								current.translation.row[column.name]
+							} else {
+								'[NEW KEY NOT DEFINED IN THIS BUT NEXT TRANSLATION]'
+							}
 						# set cell value for latest translation
 						current.sheet[row.number, 
 													paste(column.name, 
 																latest.column.suffix, 
 																sep = '')] <- 
-							latest.translation.row[column.name]
+							if (latest.nrow == 1) {
+								latest.translation.row[column.name]
+							} else {
+								'[OLD KEY REMOVED IN THIS TRANSLATION]'
+							}
 						
-						if (latest.translation.row[column.name] 
-								!= current.translation.row[column.name]) {
+						# key exists only in current or latest?
+						if (current.nrow != 1 || latest.nrow != 1) {
+							overall.status <- Translation$Xls.Sheet.Summary.StatusCode.OldNew
+							# fill text in column status
+							summary[summary.row.index, kSummaryColumnNameStatus] <- 
+								paste('Old/New key \'', 
+											cell.value, '\'', 
+											sep = '')
+							# store row position of old/new key details in list
+							summary.row.list.sheet.details.oldnew <- 
+								c(summary.row.list.sheet.details.oldnew, summary.row.index + 1)
+							# fill text in column description
+							summary[summary.row.index, kSummaryColumnNameDescription] <- 
+								if (current.nrow != 1) {
+									'New key added'
+								} else {
+									'Old key removed'
+								}
+							summary.row.index <- summary.row.index + 1
+						}
+						if (overall.status ==
+									Translation$Xls.Sheet.Summary.StatusCode.OldNew ||
+							  latest.translation.row[column.name]
+								  != current.translation.row[column.name]) {
 							# print(paste('> change ', column.name, ' in row ', row.number, ' \'', latest.translation.row[column.name], '\' to \'', current.translation.row[column.name], '\'', sep = ''))
 							
 							# store style for changed cell
@@ -172,7 +220,7 @@ PopulateSheets <- function(workbook,
 						}
 					}
 				} else {
-					overall.status <- 'Error'
+					overall.status <- Translation$Xls.Sheet.Summary.StatusCode.Error
 					# fill text in column status
 					summary[summary.row.index, kSummaryColumnNameStatus] <- 
 						paste('Unknown key \'', 
@@ -319,9 +367,13 @@ PopulateSheets <- function(workbook,
 								 col = 1:length(colnames(current.sheet)),
 								 cellstyle = kCellStyleHeader)
 		summary.row.index <- summary.row.index + 1
-		if (overall.status == 'OK') {
+		if (overall.status == Translation$Xls.Sheet.Summary.StatusCode.Ok) {
 			summary.row.list.sheet.status.ok <-
 				c(summary.row.list.sheet.status.ok,
+					summary.sheet.name.index + 1)
+		} else if (overall.status == Translation$Xls.Sheet.Summary.StatusCode.OldNew) {
+			summary.row.list.sheet.status.oldnew <- 
+				c(summary.row.list.sheet.status.oldnew,
 					summary.sheet.name.index + 1)
 		} else {
 			summary.row.list.sheet.status.error <- 
@@ -341,9 +393,10 @@ PopulateSheets <- function(workbook,
 			# auto-size for id and key column
 			# width 20 chars long for all other columns
 			columnWidth <- 
-				if (i == which(colnames(current.sheet) == Translation$Xml.Attribute.Id) 
-						|| i == which(colnames(current.sheet) == Translation$Xml.Attribute.Key)) {
-					-1
+				if (i == which(colnames(current.sheet) == Translation$Xml.Attribute.Id)) {
+					10 * 256
+				} else if (i == which(colnames(current.sheet) == Translation$Xml.Attribute.Key)) {
+					15 * 256
 				} else {
 					20 * 256
 				}
@@ -371,6 +424,18 @@ PopulateSheets <- function(workbook,
 									 row = i,
 									 col = 1:kSummaryColumnLength,
 									 cellstyle = kCellStyleSummaryOk)
+		} else if (i %in% summary.row.list.sheet.status.oldnew) {
+			setCellStyle(workbook,
+									 sheet = kSummarySheetName,
+									 row = i,
+									 col = 1:kSummaryColumnLength,
+									 cellstyle = kCellStyleSummaryChanged)
+		} else if (i %in% summary.row.list.sheet.details.oldnew) {
+			setCellStyle(workbook,
+									 sheet = kSummarySheetName,
+									 row = i,
+									 col = 2:kSummaryColumnLength,
+									 cellstyle = kCellStyleSummaryChangedDetails)
 		} else if (i %in% summary.row.list.sheet.status.error) {
 			setCellStyle(workbook,
 									 sheet = kSummarySheetName,

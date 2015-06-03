@@ -31,6 +31,9 @@ Translation$Xls.Column.All <- c(Translation$Xls.Column.Other.All,
 
 Translation$Xls.Sheet.Summary.Current <- 'Summary Current Translation'
 Translation$Xls.Sheet.Summary.Latest <- 'Summary Latest Translation'
+Translation$Xls.Sheet.Summary.StatusCode.Ok <- 'OK'
+Translation$Xls.Sheet.Summary.StatusCode.OldNew <- 'OldNew'
+Translation$Xls.Sheet.Summary.StatusCode.Error <- 'Error'
 
 Translation$Internal.Style.Df.Column.Name <- 'column.name'
 Translation$Internal.Style.Df.Row.Number <- 'row.number'
