@@ -6,19 +6,19 @@ CreateDiffWorkbook <- function(current.file.dir,
 															 latest.file.dir,
 															 language.file.suffix, # e.g. 'chi' for chinese translation file
 															 module.file.prefix = 'recruitingappTranslation', # e.g. 'recruiting' or 'employee'
-															 main.file.suffix = 'Main',
-															 english.file.suffix = 'eng', # english translation file used as second main file
+															 main1.file.suffix = Translation$Xml.File.Suffix.Main1,
+															 main2.file.suffix = Translation$Xml.File.Suffix.Main2, # english translation file used as second main file
 															 outputFilename = NULL) { # if NULL then it is constructed using module.file.prefixC
 	source('constants.R')
 	source('sort_sheet_columns.R')
 	source('create_summary_sheets.R')
 	
 	# concatenate file names based on dir, prefix, and suffix
-	current.main.file <- paste(current.file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
-	current.english.file <- paste(current.file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
+	current.main.file <- paste(current.file.dir, '/',module.file.prefix, '_', main1.file.suffix, '.xml', sep = '')
+	current.english.file <- paste(current.file.dir, '/',module.file.prefix, '_', main2.file.suffix, '.xml', sep = '')
 	current.language.file <- paste(current.file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
-	latest.main.file <- paste(latest.file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
-	latest.english.file <- paste(latest.file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
+	latest.main.file <- paste(latest.file.dir, '/',module.file.prefix, '_', main1.file.suffix, '.xml', sep = '')
+	latest.english.file <- paste(latest.file.dir, '/',module.file.prefix, '_', main2.file.suffix, '.xml', sep = '')
 	latest.language.file <- paste(latest.file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
 	
 	# read template workbook
@@ -45,8 +45,8 @@ CreateDiffWorkbook <- function(current.file.dir,
 		LoadTranslationAndCreateSummarySheet(current.file.dir, 
 																				 language.file.suffix, 
 																				 module.file.prefix, 
-																				 main.file.suffix,
-																				 english.file.suffix,
+																				 main1.file.suffix,
+																				 main2.file.suffix,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Current)
 	
@@ -56,8 +56,8 @@ CreateDiffWorkbook <- function(current.file.dir,
 		LoadTranslationAndCreateSummarySheet(latest.file.dir, 
 																				 language.file.suffix, 
 																				 module.file.prefix, 
-																				 main.file.suffix,
-																				 english.file.suffix,
+																				 main1.file.suffix,
+																				 main2.file.suffix,
 																				 workbook, 
 																				 Translation$Xls.Sheet.Summary.Latest)
 	
@@ -181,8 +181,8 @@ CreateDiffWorkbook <- function(current.file.dir,
 	if (is.null(outputFilename)) {
 		outputFilename <- paste(latest.file.dir, 
 														'/',module.file.prefix, 
-														'_', main.file.suffix, '_', 
-														english.file.suffix, 
+														'_', main1.file.suffix, '_', 
+														main2.file.suffix, 
 														'_',
 														language.file.suffix,
 														'.xlsx',

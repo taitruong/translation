@@ -7,15 +7,13 @@ require(cwhmisc)
 LoadTranslationAndCreateSummarySheet <- function(file.dir, 
 																								 language.file.suffix, # e.g. 'chi' for chinese translation file
 																								 module.file.prefix = 'recruitingappTranslation', # e.g. 'recruiting' or 'employee'
-																								 main.file.suffix = 'Main',
-																								 english.file.suffix = 'eng', 
 																								 workbook, 
 																								 summary.sheet.name) {
 	source('load_translation.R')
 	source('constants.R')
 	
-	main.file <- paste(file.dir, '/',module.file.prefix, '_', main.file.suffix, '.xml', sep = '')
-	english.file <- paste(file.dir, '/',module.file.prefix, '_', english.file.suffix, '.xml', sep = '')
+	main1.file <- paste(file.dir, '/',module.file.prefix, '_', Translation$Xml.File.Suffix.Main1, '.xml', sep = '')
+	main2.file <- paste(file.dir, '/',module.file.prefix, '_', Translation$Xml.File.Suffix.Main2, '.xml', sep = '')
 	language.file <- paste(file.dir, '/',module.file.prefix, '_', language.file.suffix, '.xml', sep = '')
 	
 
@@ -44,11 +42,11 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			Output = character(),
 			stringsAsFactors = FALSE
 		)
-		summary.df[start.row, kColumnNameDescription] <- paste(main.file.suffix, 'file:')
-		summary.df[start.row, kColumnNameOutput] <- main.file
+		summary.df[start.row, kColumnNameDescription] <- paste(Translation$Xml.File.Suffix.Main1, 'file:')
+		summary.df[start.row, kColumnNameOutput] <- main1.file
 		start.row <- start.row + 1
-		summary.df[start.row, kColumnNameDescription] <- paste(english.file.suffix, 'file:')
-		summary.df[start.row, kColumnNameOutput] <- english.file
+		summary.df[start.row, kColumnNameDescription] <- paste(Translation$Xml.File.Suffix.Main2, 'file:')
+		summary.df[start.row, kColumnNameOutput] <- main2.file
 		start.row <- start.row + 1
 		summary.df[start.row, kColumnNameDescription] <- paste(language.file.suffix, 'file:')
 		summary.df[start.row, kColumnNameOutput] <- language.file
@@ -57,19 +55,19 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 		# return function to be used in LoadTranslation function
 		function(result, mainDf, englishDf, languageDf) {
 			summary.df[start.row, kColumnNameDescription] <- 
-				'Number of translations in main file:'
+				paste('Number of translations in', Translation$Xml.File.Suffix.Main1, 'file:')
 			summary.df[start.row, kColumnNameOutput] <- 
 				nrow(mainDf)
 			start.row <- start.row + 1
 			
 			summary.df[start.row, kColumnNameDescription] <- 
-				'Number of translations in english file:'
+				paste('Number of translations in', Translation$Xml.File.Suffix.Main2, 'file:')
 			summary.df[start.row, kColumnNameOutput] <- 
 				nrow(englishDf)
 			start.row <- start.row + 1
 			
 			summary.df[start.row, kColumnNameDescription] <- 
-				'Number of translations in language file:'
+				paste('Number of translations in', language.file.suffix, 'file:')
 			summary.df[start.row, kColumnNameOutput] <- 
 				nrow(languageDf)
 			start.row <- start.row + 1
@@ -85,7 +83,7 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			main.to.english.row.error <- if (main.to.english.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(main.to.english.row.number,
-								'NEW id(s) in', main.file.suffix, 'file but not in', english.file.suffix, 'file:')
+								'NEW id(s) in', Translation$Xml.File.Suffix.Main1, 'file but not in', Translation$Xml.File.Suffix.Main2, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(main.df.not.in.english.df$ID)
 				start.row <- 
@@ -99,7 +97,7 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			main.to.lang.row.error <- if (main.to.lang.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(main.to.lang.row.number,
-								'NEW id(s) in', main.file.suffix, 'file but not in', language.file.suffix, 'file:')
+								'NEW id(s) in', Translation$Xml.File.Suffix.Main1, 'file but not in', language.file.suffix, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(main.df.not.in.lang.df$ID)
 				start.row <- 
@@ -113,7 +111,7 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			english.to.main.row.error <- if (english.to.main.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(english.to.main.row.number,
-								'OLD id(s) in', english.file.suffix, 'file but not in', main.file.suffix, 'file:')
+								'OLD id(s) in', Translation$Xml.File.Suffix.Main2, 'file but not in', Translation$Xml.File.Suffix.Main1, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(english.df.not.in.main.df$ID)
 				start.row <- 
@@ -127,7 +125,7 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			lang.to.main.row.error <- if (lang.to.main.row.number > 0) {
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(lang.to.main.row.number,
-								'OLD id(s) in', language.file.suffix, 'file but not in', main.file.suffix, 'file:')
+								'OLD id(s) in', language.file.suffix, 'file but not in', Translation$Xml.File.Suffix.Main1, 'file:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(lang.df.not.in.main.df$ID)
 				start.row <- 
@@ -136,17 +134,17 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			} else {
 				-1
 			}
-			# check in column 'OriginalText' for escape errors
+			# check in main1 text column for escape errors
 			# like for '<' it should be '&lt;' and not '&lt;lt;'
 			escape.row.error.list <- list()
 			original.text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
-				if (!is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'amp;amp;')) 
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'lt;lt;'))
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'gt;gt;'))
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'apos;apos;'))
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Original.Text], 'quot;quot;'))) {
+				if (!is.na(cpos(resultRow[Translation$Xml.File.Suffix.Main1], 'amp;amp;')) 
+						|| !is.na(cpos(resultRow[Translation$Xml.File.Suffix.Main1], 'lt;lt;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.File.Suffix.Main1], 'gt;gt;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.File.Suffix.Main1], 'apos;apos;'))
+						|| !is.na(cpos(resultRow[Translation$Xml.File.Suffix.Main1], 'quot;quot;'))) {
 					original.text.escape.list <- 
 						c(original.text.escape.list, resultRow$ID)
 				}
@@ -155,7 +153,7 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(length(original.text.escape.list),
 								'escape errors in attribute', 
-								Translation$Xml.Attribute.Original.Text, 
+								Translation$Xml.File.Suffix.Main1, 
 								'with IDs:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(original.text.escape.list)
@@ -168,11 +166,11 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 			text.escape.list <- list()
 			for (i in 1:nrow(result)) {
 				resultRow <- result[i,]
-				if (!is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'amp;amp;')) 
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'lt;lt;'))
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'gt;gt;'))
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'apos;apos;'))
-						|| !is.na(cpos(resultRow[Translation$Xml.Attribute.Text], 'quot;quot;'))) {
+				if (!is.na(cpos(resultRow[language.file.suffix], 'amp;amp;')) 
+						|| !is.na(cpos(resultRow[language.file.suffix], 'lt;lt;'))
+						|| !is.na(cpos(resultRow[language.file.suffix], 'gt;gt;'))
+						|| !is.na(cpos(resultRow[language.file.suffix], 'apos;apos;'))
+						|| !is.na(cpos(resultRow[language.file.suffix], 'quot;quot;'))) {
 					text.escape.list <- c(text.escape.list, resultRow$ID)
 				}
 			}
@@ -180,7 +178,7 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 				summary.df[start.row, kColumnNameDescription] <- 
 					paste(length(text.escape.list),
 								'escape errors in attribute', 
-								Translation$Xml.Attribute.Text,
+								language.file.suffix,
 								'with IDs:')
 				summary.df[start.row, kColumnNameOutput] <- 
 					toString(text.escape.list)
@@ -257,8 +255,9 @@ LoadTranslationAndCreateSummarySheet <- function(file.dir,
 		}
 	}
 	# load and return data frame
-	LoadTranslation(main.file, 
-									english.file, 
-									language.file, 
+	LoadTranslation(main1.file, 
+									main2.file, 
+									language.file,
+									language.file.suffix,
 									LanguageSummarySheetHandler(summary.sheet.name))
 }

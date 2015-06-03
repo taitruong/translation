@@ -1,6 +1,7 @@
 PopulateSheets <- function(workbook, 
 													 current.translation, 
 													 latest.translation, 
+													 language.file.suffix, # e.g. 'chi' for chinese translation file
 													 sheet.names, 
 													 latest.column.suffix = Translation$Xls.Column.Suffix.Latest,
 													 start.at.row = 1) {
@@ -134,6 +135,9 @@ PopulateSheets <- function(workbook,
 		# all other infos goes to next line
 		summary.row.index <- summary.row.index + 1
 		
+		xls.text.columns <- list(Translation$Xml.File.Suffix.Main1, 
+														 Translation$Xml.File.Suffix.Main2,
+														 language.file.suffix)
 		# is there any data?
 		row.numbers <- nrow(current.sheet)
 		if (row.numbers >= start.at.row) {
@@ -160,6 +164,7 @@ PopulateSheets <- function(workbook,
 				# there must be exactly one translation
 				current.nrow <- nrow(current.translation.row)
 				latest.nrow <- nrow(latest.translation.row)
+				check.oldnew.once <- FALSE
 				if (current.nrow == 1 || latest.nrow == 1) {
 					# set ID in sheet
 					current.sheet[row.number, 'ID'] <- if (current.nrow == 1) {
@@ -169,7 +174,7 @@ PopulateSheets <- function(workbook,
 					}
 					
 					# fill columns
-					for (column.name in Translation$Xls.Text.Columns) {
+					for (column.name in xls.text.columns) {
 						# set cell value for current translation
 						current.sheet[row.number, column.name] <- 
 							if (current.nrow == 1) {
@@ -189,8 +194,9 @@ PopulateSheets <- function(workbook,
 							}
 						
 						# key exists only in current or latest?
-						if (current.nrow != 1 || latest.nrow != 1) {
-							overall.status <- Translation$Xls.Sheet.Summary.StatusCode.OldNew
+						if (!check.oldnew.once &&
+									(current.nrow != 1 || latest.nrow != 1)) {
+							check.oldnew.once <- TRUE
 							# fill text in column status
 							summary[summary.row.index, kSummaryColumnNameStatus] <- 
 								paste('Old/New key \'', 
@@ -208,8 +214,7 @@ PopulateSheets <- function(workbook,
 								}
 							summary.row.index <- summary.row.index + 1
 						}
-						if (overall.status ==
-									Translation$Xls.Sheet.Summary.StatusCode.OldNew ||
+						if (check.oldnew.once ||
 							  latest.translation.row[column.name]
 								  != current.translation.row[column.name]) {
 							# print(paste('> change ', column.name, ' in row ', row.number, ' \'', latest.translation.row[column.name], '\' to \'', current.translation.row[column.name], '\'', sep = ''))
@@ -338,7 +343,7 @@ PopulateSheets <- function(workbook,
 		# write output for number of sheet changes in each column
 		total.changes <- 0
 		summary.column.status.text <- ''
-		for (column.name in Translation$Xls.Text.Columns) {
+		for (column.name in xls.text.columns) {
 			# first check if there are rows (nrow) because
 			# calling which on empty causes an error
 			changes <- if (nrow(cell.style.rows.df) == 0) {
@@ -370,10 +375,6 @@ PopulateSheets <- function(workbook,
 		if (overall.status == Translation$Xls.Sheet.Summary.StatusCode.Ok) {
 			summary.row.list.sheet.status.ok <-
 				c(summary.row.list.sheet.status.ok,
-					summary.sheet.name.index + 1)
-		} else if (overall.status == Translation$Xls.Sheet.Summary.StatusCode.OldNew) {
-			summary.row.list.sheet.status.oldnew <- 
-				c(summary.row.list.sheet.status.oldnew,
 					summary.sheet.name.index + 1)
 		} else {
 			summary.row.list.sheet.status.error <- 
