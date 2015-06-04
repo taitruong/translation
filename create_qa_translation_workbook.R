@@ -6,8 +6,8 @@ CreateQaTranslationWorkbook <- function(excel.file,
 																				current.file.dir,
 																				latest.file.dir,
 																				language.file.suffix, # e.g. 'chi' for chinese translation file
-																				column.version.suffix.current = 'Current',
-																				column.version.suffix.latest = 'Latest',
+																				column.version.current = 'Current',
+																				column.version.latest = 'Latest',
 																				module.file.prefix = 'recruitingappTranslation' # e.g. 'recruiting' or 'employee'
 																				) {
 	source('create_summary_sheets.R')
@@ -42,10 +42,12 @@ CreateQaTranslationWorkbook <- function(excel.file,
 								 latest.translation, 
 								 language.file.suffix,
 								 sheet.names,
+								 column.version.current,
+								 column.version.latest,
 								 start.at.row = 4) 	# skip first 3 rows since they contain no keys / only header infos
 	
 	# save result
-	result.filename <- paste('new_', excel.file)
+	result.filename <- paste('new_', excel.file, sep='')
 	print(paste('Saving', result.filename))
 	saveWorkbook(workbook, result.filename)
 	

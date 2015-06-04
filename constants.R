@@ -11,13 +11,6 @@ Translation$Xml.Attribute.Key <- 'Key'
 Translation$Df.Attribute.Main1 <- Translation$Xml.File.Suffix.Main1
 Translation$Df.Attribute.Main2 <- Translation$Xml.File.Suffix.Main2
 
-Translation$Xls.Column.Suffix.Latest <- 'Latest'
-Translation$Xls.Latest.Text.Columns <- 
-	sapply(Translation$Xls.Text.Columns,
-				 function(column) {
-				 	paste(column, Translation$Xls.Column.Suffix.Latest, sep = '')
-				 })
-
 Translation$Xls.Column.Other.Description <- 'Description' 
 Translation$Xls.Column.Other.Id <- Translation$Xml.Attribute.Id
 Translation$Xls.Column.Other.Key <- Translation$Xml.Attribute.Key

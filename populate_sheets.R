@@ -3,7 +3,8 @@ PopulateSheets <- function(workbook,
 													 latest.translation, 
 													 language.file.suffix, # e.g. 'chi' for chinese translation file
 													 sheet.names, 
-													 latest.column.suffix = Translation$Xls.Column.Suffix.Latest,
+													 column.version.current = 'Current',
+													 column.version.latest = 'Latest',
 													 start.at.row = 1) {
 	source('constants.R')
 	source('sort_sheet_columns.R')
@@ -164,7 +165,9 @@ PopulateSheets <- function(workbook,
 				# there must be exactly one translation
 				current.nrow <- nrow(current.translation.row)
 				latest.nrow <- nrow(latest.translation.row)
-				check.oldnew.once <- FALSE
+				# flag to make sure it appears only once in the summary sheet
+				# and not 3 times because of 3 text columns
+				oldnew.summary <- FALSE
 				if (current.nrow == 1 || latest.nrow == 1) {
 					# set ID in sheet
 					current.sheet[row.number, 'ID'] <- if (current.nrow == 1) {
@@ -176,48 +179,57 @@ PopulateSheets <- function(workbook,
 					# fill columns
 					for (column.name in xls.text.columns) {
 						# set cell value for current translation
-						current.sheet[row.number, column.name] <- 
+						current.sheet[row.number, paste(column.name, column.version.current)] <- 
 							if (current.nrow == 1) {
 								current.translation.row[column.name]
 							} else {
-								'[NEW KEY NOT DEFINED IN THIS BUT NEXT TRANSLATION]'
+								paste('[NEW key added in release ', column.version.latest, ', but not existent in', column.version.current, '!]')
 							}
 						# set cell value for latest translation
-						current.sheet[row.number, 
-													paste(column.name, 
-																latest.column.suffix, 
-																sep = '')] <- 
+						current.sheet[row.number, paste(column.name, column.version.latest)] <- 
 							if (latest.nrow == 1) {
 								latest.translation.row[column.name]
 							} else {
-								'[OLD KEY REMOVED IN THIS TRANSLATION]'
+								paste('[OLD key removed in release ', column.version.latest, ', but existent in', column.version.current, '!]')
 							}
 						
 						# key exists only in current or latest?
-						if (!check.oldnew.once &&
-									(current.nrow != 1 || latest.nrow != 1)) {
-							check.oldnew.once <- TRUE
+						key.in.current.latest <- current.nrow == 1 & latest.nrow == 1
+						if (!oldnew.summary && !key.in.current.latest) {
+							oldnew.summary <- TRUE
 							# fill text in column status
 							summary[summary.row.index, kSummaryColumnNameStatus] <- 
 								paste('Old/New key \'', 
 											cell.value, '\'', 
 											sep = '')
-							# store row position of old/new key details in list
-							summary.row.list.sheet.details.oldnew <- 
-								c(summary.row.list.sheet.details.oldnew, summary.row.index + 1)
 							# fill text in column description
 							summary[summary.row.index, kSummaryColumnNameDescription] <- 
 								if (current.nrow != 1) {
-									'New key added'
+									paste('NEW key added in release ', 
+												column.version.latest, 
+												', but not existent in', 
+												column.version.current,
+												', sheet row', row.number+1)
 								} else {
-									'Old key removed'
+									paste('OLD key in release ',
+												column.version.latest, 
+												', but removed in', 
+												column.version.current,
+												', sheet row', row.number+1)
 								}
+							# store row position of old/new key details in list
+							summary.row.list.sheet.details.oldnew <- 
+								c(summary.row.list.sheet.details.oldnew, summary.row.index + 1)
 							summary.row.index <- summary.row.index + 1
 						}
-						if (check.oldnew.once ||
-							  latest.translation.row[column.name]
-								  != current.translation.row[column.name]) {
-							# print(paste('> change ', column.name, ' in row ', row.number, ' \'', latest.translation.row[column.name], '\' to \'', current.translation.row[column.name], '\'', sep = ''))
+						# cell style in case:
+						## - key does not exist either in current or latest version
+						## - text is different between current and latest
+						if (!key.in.current.latest || # no key
+									latest.translation.row[column.name] != # text differences
+								  current.translation.row[column.name]) {
+							#if (!key.in.current.latest) print(paste('> old/new key ', column.name, ' in row ', row.number))
+							#print(paste('> change ', column.name, ' in row ', row.number, ' \'', current.translation.row[column.name], '\' to \'', latest.translation.row[column.name], '\'', sep = ''))
 							
 							# store style for changed cell
 							cell.style.rows.df[nrow(cell.style.rows.df) + 1, ] <- 
@@ -285,26 +297,30 @@ PopulateSheets <- function(workbook,
 											 row = row.number,
 											 col = 1:length(colnames(current.sheet)),
 											 cellstyle = kCellStyleRowChanged)
+					# set styles for some cells this row
 					for (style.row.index in style.row.indices) {
-						# get row style
+						# get row style for each cell
 						style.row <- cell.style.rows.df[style.row.index,]
 						if (style.row[Translation$Internal.Style.Df.Style.Type] == Translation$Internal.Style.Df.Style.Type.Cell) {
-							# cell style for cell for current column
+							#print(paste('> cell style for column', paste(style.row[[Translation$Internal.Style.Df.Column.Name]],column.version.current), ' in row', row.number))
+							
+							# cell style for current translation release column
 							setCellStyle(workbook, 
 													 sheet = sheet.name, 
 													 row = row.number,
-													 col = which(colnames(current.sheet) == 
-													 							style.row[[Translation$Internal.Style.Df.Column.Name]]),
+													 col = which(colnames(current.sheet) ==
+													 							paste(style.row[[Translation$Internal.Style.Df.Column.Name]],
+													 											 column.version.current)),
 													 cellstyle = kCellStyleCellChanged)
-							# cell style for cell for latest column
-							paste(style.row[[Translation$Internal.Style.Df.Column.Name]], latest.column.suffix, sep='')
+
+							#print(paste('> cell style for column', paste(style.row[[Translation$Internal.Style.Df.Column.Name]],column.version.latest), ' in row', row.number))
+							# cell style for latest translation release column
 							setCellStyle(workbook, 
 													 sheet = sheet.name, 
 													 row = row.number,
-													 col = which(colnames(current.sheet)
-													 						== paste(style.row[[Translation$Internal.Style.Df.Column.Name]],
-													 										 latest.column.suffix,
-													 										 sep='')),
+													 col = which(colnames(current.sheet) ==
+													 							paste(style.row[[Translation$Internal.Style.Df.Column.Name]],
+													 										 column.version.latest)),
 													 cellstyle = kCellStyleCellChanged)
 						} else {
 							# cell style for complete row error
