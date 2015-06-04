@@ -18,11 +18,6 @@ Translation$Xls.Column.Other.All <- list(Translation$Xls.Column.Other.Descriptio
 																				 Translation$Xls.Column.Other.Id, 
 																				 Translation$Xls.Column.Other.Key)
 
-# keep this order!
-Translation$Xls.Column.All <- c(Translation$Xls.Column.Other.All,
-																Translation$Xls.Text.Columns, 
-																Translation$Xls.Latest.Text.Columns)
-
 Translation$Xls.Sheet.Summary.Current <- 'Summary Current Translation'
 Translation$Xls.Sheet.Summary.Latest <- 'Summary Latest Translation'
 Translation$Xls.Sheet.Summary.StatusCode.Ok <- 'OK'
