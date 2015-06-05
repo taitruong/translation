@@ -11,6 +11,9 @@ Translation$Xml.Attribute.Key <- 'Key'
 Translation$Df.Attribute.Main1 <- Translation$Xml.File.Suffix.Main1
 Translation$Df.Attribute.Main2 <- Translation$Xml.File.Suffix.Main2
 
+Translation$Xls.Column.Placeholder.Current <- 'Current'
+Translation$Xls.Column.Placeholder.Latest <- 'Latest'
+
 Translation$Xls.Column.Other.Description <- 'Description' 
 Translation$Xls.Column.Other.Id <- Translation$Xml.Attribute.Id
 Translation$Xls.Column.Other.Key <- Translation$Xml.Attribute.Key

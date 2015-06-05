@@ -7,7 +7,7 @@ PopulateSheets <- function(workbook,
 													 column.version.latest = 'Latest',
 													 start.at.row = 1) {
 	source('constants.R')
-	source('sort_sheet_columns.R')
+	debugSource('sort_sheet_columns.R')
 	sheets <- readWorksheet(workbook, sheet.names)
 	
 	#################### initialisations, variables, constants, and function definitions ####################
