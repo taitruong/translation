@@ -43,7 +43,8 @@ LoadTranslation <- function(main1.file,
 			attribute.names <- names(attributes)
 			
 			# get raw string of whole node
-			raw.string <- toString.XMLNode(translationTag)
+			#raw.string <- toString.XMLNode(translationTag) # does not work for special characters like kyrilian, japanese, chinese letters...
+			raw.string <- as(translationTag, 'character')
 			
 			# get attributes
 			if (!Translation$Xml.Attribute.Id %in% attribute.names) 
